@@ -7,7 +7,7 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 
 # we depend on gatb-core; here, we define where to find all the required material
-add_subdirectory (../../thirdparty/gatb-core  "${CMAKE_CURRENT_BINARY_DIR}/ext/gatb-core")
+add_subdirectory (../../thirdparty/gatb-core/gatb-core  "${CMAKE_CURRENT_BINARY_DIR}/ext/gatb-core")
 
 
 ################################################################################
