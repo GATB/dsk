@@ -10,103 +10,78 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/math/Integer.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/designpattern/impl/Command.hpp>
-#include <gatb/tools/misc/impl/TimeInfo.hpp>
-#include <gatb/tools/misc/impl/OptionsParser.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/tools/misc/impl/Tool.hpp>
+#include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 
 #include <string>
 
 /********************************************************************************/
 
-using namespace gatb::core::tools::collections;
-using namespace gatb::core::tools::math;
-using namespace gatb::core::tools::misc;
-using namespace gatb::core::tools::misc::impl;
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
+/** NOTE: we should not include namespaces here => only to make user life easier... */
+using namespace gatb::core;
+using namespace gatb::core::tools;
 using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::kmer;
-using namespace gatb::core::kmer::impl;
 
 /********************************************************************************/
 
-/** */
-class DSK
+/** \brief Kmer counting class
+ */
+class DSK : public misc::impl::Tool
 {
 public:
 
-    /** */
+    /** Constructor. */
     DSK ();
 
-    /** */
+    /** destructor. */
     virtual ~DSK ();
     
     /** */
-    IProperties&  execute (IProperties* params);
-
-    /** */
-    virtual OptionsParser* createOptionsParser ();
-
-    /** */
     static const char* STR_KMER_SIZE;
     static const char* STR_DB;
-    static const char* STR_NB_CORES;
     static const char* STR_MAX_MEMORY;
     static const char* STR_NKS;
     static const char* STR_PREFIX;
-    static const char* STR_QUIET;
-    static const char* STR_STATS_XML;
     static const char* STR_OUTPUT;
 
 private:
 
     /** */
+    void  execute ();
+
+    /** */
     void configure ();
     
     /** */
-    void fillPartitions (size_t pass, Iterator<Sequence>* itSeq);
+    void fillPartitions (size_t pass, dp::Iterator<Sequence>* itSeq);
 
     /** */
-    void fillSolidKmers (Bag<kmer_type>*  solidKmers);
+    void fillSolidKmers (collections::Bag<kmer::impl::kmer_type>*  solidKmers);
 
     /** */
-    virtual Iterator<Sequence>* createSequenceIterator (IteratorListener* progress);
+    virtual tools::dp::Iterator<Sequence>* createSequenceIterator (tools::dp::IteratorListener* progress);
 
     /** */
-    virtual Bag<kmer_type>* createSolidKmersBag ();
+    virtual collections::Bag<kmer::impl::kmer_type>* createSolidKmersBag ();
 
     /** */
-    void buildBankBinary (Bank& bank);
+    void buildBankBinary (IBank& bank);
 
     /** */
     std::string getPartitionUri ()  {  return _prefix + "%d";  }
 
     /** */
-    std::string getOutputUri ()  { return _prefix + (*_params)[STR_OUTPUT]->getValue(); }
+    std::string getOutputUri ()  { return _prefix + _solidFile; }
 
-    /** */
-    IProperties* _params;
-    void setParams (IProperties* params)  { SP_SETATTR(params); }
+    bank::IBank* _bankBinary;
 
-    /** */
-    IProperties* _stats;
-    void setStats (IProperties* stats)  { SP_SETATTR(stats); }
-
-    BankBinary* _bankBinary;
-    TimeInfo _timeInfo;
-
-    std::string   _filename;
-    size_t   _kmerSize;
-    size_t   _nks;
-    std::string   _prefix;
-
-    ICommandDispatcher* _dispatcher;
+    /** Shortcuts. */
+    std::string _filename;
+    size_t      _kmerSize;
+    size_t      _nks;
+    std::string _prefix;
+    std::string _solidFile;
 
     u_int64_t _estimateSeqNb;
     u_int64_t _estimateSeqTotalSize;

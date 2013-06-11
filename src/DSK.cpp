@@ -5,35 +5,54 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/********************************************************************************/
+// We include required definitions
+/********************************************************************************/
+
 #include <DSK.hpp>
 
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/BagPartition.hpp>
+
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+
+#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
 
-#include <omptl/omptl_numeric>
 #include <omptl/omptl_algorithm>
-#include <omp.h>
-
-// We use the required packages
-using namespace std;
-using namespace gatb::core::system;
-using namespace gatb::core::system::impl;
-using namespace gatb::core::tools::collections::impl;
 
 /********************************************************************************/
+// We use the required packages
+/********************************************************************************/
+using namespace std;
 
+using namespace gatb::core::system;
+using namespace gatb::core::system::impl;
+
+using namespace gatb::core::bank::impl;
+
+using namespace gatb::core::tools::collections;
+using namespace gatb::core::tools::collections::impl;
+
+using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
+
+using namespace gatb::core::tools::dp;
+using namespace gatb::core::tools::dp::impl;
+
+using namespace gatb::core::kmer::impl;
+
+/********************************************************************************/
+// We define some string constants.
+/********************************************************************************/
 const char* DSK::STR_KMER_SIZE  = "-kmer-size";
 const char* DSK::STR_DB         = "-db";
-const char* DSK::STR_NB_CORES   = "-nb-cores";
 const char* DSK::STR_MAX_MEMORY = "-max-memory";
 const char* DSK::STR_NKS        = "-nks";
 const char* DSK::STR_PREFIX     = "-prefix";
 const char* DSK::STR_OUTPUT     = "-out";
-const char* DSK::STR_QUIET      = "-quiet";
-const char* DSK::STR_STATS_XML  = "-stats";
 
 /********************************************************************************/
 
@@ -97,7 +116,6 @@ private:
     KmerModel& model;
 };
 
-
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -107,11 +125,17 @@ private:
 ** REMARKS :
 *********************************************************************/
 DSK::DSK ()
-    : _params(0), _stats(0), _bankBinary(0),
-      _nks (3), _prefix("dsk."),
+    : Tool ("dsk"), _bankBinary(0), _filename(""), _kmerSize(27), _nks(3), _prefix("dsk."), _solidFile(""),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
-      _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0)
+      _max_disk_space(0), _max_memory(1000), _volume(0), _nb_passes(0), _nb_partitions(0)
 {
+    /** We add options specific to DSK. */
+    _parser->add (new OptionOneParam (DSK::STR_KMER_SIZE,   "size of a kmer",                       true));
+    _parser->add (new OptionOneParam (DSK::STR_DB,          "URI of the bank",                      true));
+    _parser->add (new OptionOneParam (DSK::STR_MAX_MEMORY,  "max memory",                           false));
+    _parser->add (new OptionOneParam (DSK::STR_NKS,         "abundance threshold for solid kmers",  false));
+    _parser->add (new OptionOneParam (DSK::STR_OUTPUT,      "solid kmers file",                     false));
+    _parser->add (new OptionOneParam (DSK::STR_PREFIX,      "prefix URI for temporary files",       false));
 }
 
 /*********************************************************************
@@ -124,11 +148,7 @@ DSK::DSK ()
 *********************************************************************/
 DSK::~DSK ()
 {
-    setParams (0);
-    setStats  (0);
-
-    delete _bankBinary;
-    delete _dispatcher;
+    if (_bankBinary)  {  delete _bankBinary;  }
 }
 
 /*********************************************************************
@@ -139,70 +159,19 @@ DSK::~DSK ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-OptionsParser* DSK::createOptionsParser ()
+void DSK::execute ()
 {
-    OptionsParser* parser = new OptionsParser ();
+    IProperty* prop = 0;
 
-    parser->add (new OptionOneParam (DSK::STR_KMER_SIZE,   "size of a kmer",                       true));
-    parser->add (new OptionOneParam (DSK::STR_DB,          "URI of the bank",                      true));
-    parser->add (new OptionOneParam (DSK::STR_NB_CORES,    "number of cores",                      false));
-    parser->add (new OptionOneParam (DSK::STR_MAX_MEMORY,  "max memory",                           false));
-    parser->add (new OptionOneParam (DSK::STR_NKS,         "abundance threshold for solid kmers",  false));
-    parser->add (new OptionOneParam (DSK::STR_OUTPUT,      "solid kmers file",                     false));
-    parser->add (new OptionOneParam (DSK::STR_PREFIX,      "prefix URI for temporary files",       false));
-    parser->add (new OptionNoParam  (DSK::STR_QUIET,       "don't display exec information",       false));
-    parser->add (new OptionOneParam (DSK::STR_STATS_XML,   "dump exec info into a XML file",       false));
-
-    return parser;
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-IProperties& DSK::execute (IProperties* params)
-{
-    setParams (params);
-
-    IProperty* prop;
-
-    if ( (prop = (*_params)[STR_KMER_SIZE])  != 0)  {  _kmerSize   = prop->getInt();     }
-    if ( (prop = (*_params)[STR_DB])         != 0)  {  _filename   = prop->getValue();   }
-    if ( (prop = (*_params)[STR_MAX_MEMORY]) != 0)  {  _max_memory = prop->getInt();     }
-    if ( (prop = (*_params)[STR_NKS])        != 0)  {  _nks        = prop->getInt();     }
-    if ( (prop = (*_params)[STR_PREFIX])     != 0)  {  _prefix     = prop->getValue();   }
-
-    if ( (prop = (*_params)[STR_OUTPUT])     == 0)  {  _params->add (1, DSK::STR_OUTPUT, "solid.bin");    }
-
-    /** We read properties from the init file (if any). */
-    _params->add (1, new Properties (System::info().getHomeDirectory() + string ("/.dskrc")));
+    _kmerSize   = _input->getInt (STR_KMER_SIZE);
+    _filename   = _input->getStr (STR_DB);
+    _max_memory = _input->getInt (STR_MAX_MEMORY,   1000);
+    _nks        = _input->getInt (STR_NKS,          3);
+    _prefix     = _input->getStr (STR_PREFIX,       "dsk.");
+    _solidFile  = _input->getStr (STR_OUTPUT,       "solid.bin");
 
     /** We create the binary bank holding the reads in binary format. */
     _bankBinary = new BankBinary (_filename + ".bin");
-
-    /** We create our dispatcher. */
-    prop = (*params)[STR_NB_CORES];
-    _dispatcher = new ParallelCommandDispatcher (prop ? prop->getInt() : 0);
-
-    /** We create a properties object for gathering statistics. */
-    setStats (new Properties());
-    _stats->add (0, "dsk");
-
-    /** We add the user parameters to the global stats. */
-    _stats->add (1, params);
 
     /** We configure dsk. */
     configure ();
@@ -229,15 +198,9 @@ IProperties& DSK::execute (IProperties* params)
     solidKmers->flush();
 
     /** We gather some statistics. */
-    _stats->add (1, "result");
-    _stats->add (2, "solid kmers nb",   "%ld", (System::file().getSize(getOutputUri()) / sizeof (kmer_type)) );
-    _stats->add (2, "solid kmers uri",  "%s",  getOutputUri().c_str());
-
-    /** We add the exec time stats to the global statistics. */
-    _stats->add (1, _timeInfo.getProperties("time"));
-
-    /** We return the aggregated information. */
-    return *_stats;
+    _output->add (1, "result");
+    _output->add (2, "solid kmers nb",   "%ld", (System::file().getSize(getOutputUri()) / sizeof (kmer_type)) );
+    _output->add (2, "solid kmers uri",  "%s",  getOutputUri().c_str());
 }
 
 /*********************************************************************
@@ -286,18 +249,18 @@ void DSK::configure ()
     } while (1);
 
     /** We gather some statistics. */
-    _stats->add (1, "config");
-    _stats->add (2, "current directory", System::file().getCurrentDirectory());
-    _stats->add (2, "available space",   "%ld", available_space);
-    _stats->add (2, "bank size",         "%ld", bankSize);
-    _stats->add (2, "sequence number",   "%ld", _estimateSeqNb);
-    _stats->add (2, "sequence volume",   "%ld", _estimateSeqTotalSize / MBYTE);
-    _stats->add (2, "kmers number",      "%ld", kmersNb);
-    _stats->add (2, "kmers volume",      "%ld", _volume);
-    _stats->add (2, "max disk space",    "%ld", _max_disk_space);
-    _stats->add (2, "nb passes",         "%d",  _nb_passes);
-    _stats->add (2, "nb partitions",     "%d",  _nb_partitions);
-    _stats->add (2, "nb bits per kmer",  "%d",  Integer::getSize());
+    _output->add (1, "config");
+    _output->add (2, "current directory", System::file().getCurrentDirectory());
+    _output->add (2, "available space",   "%ld", available_space);
+    _output->add (2, "bank size",         "%ld", bankSize);
+    _output->add (2, "sequence number",   "%ld", _estimateSeqNb);
+    _output->add (2, "sequence volume",   "%ld", _estimateSeqTotalSize / MBYTE);
+    _output->add (2, "kmers number",      "%ld", kmersNb);
+    _output->add (2, "kmers volume",      "%ld", _volume);
+    _output->add (2, "max disk space",    "%ld", _max_disk_space);
+    _output->add (2, "nb passes",         "%d",  _nb_passes);
+    _output->add (2, "nb partitions",     "%d",  _nb_partitions);
+    _output->add (2, "nb bits per kmer",  "%d",  kmer_type::getSize());
 }
 
 /*********************************************************************
@@ -393,10 +356,14 @@ void DSK::fillSolidKmers (Bag<kmer_type>*  solidKmers)
 *********************************************************************/
 Iterator<Sequence>* DSK::createSequenceIterator (IteratorListener* progress)
 {
+    /** We always use the provided argument in case we don't do anything in this method
+     * and the user doesn't release it. */
+    LOCAL (progress);
+
     // We need an iterator on the FASTA bank.
     Iterator<Sequence>* result = _bankBinary->iterator();
 
-    if ( (*_params)[STR_QUIET] == 0)
+    if ( _input->get(STR_QUIET) == 0)
     {
         // We create an iterator over the paired iterator on sequences
         SubjectIterator<Sequence>* result2 = new SubjectIterator<Sequence> (result, 5*1000);
@@ -438,13 +405,13 @@ Bag<kmer_type>* DSK::createSolidKmersBag ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void DSK::buildBankBinary (Bank& bank)
+void DSK::buildBankBinary (IBank& bank)
 {
     TIME_INFO (_timeInfo, "bank conversion");
 
     Progress* progress = 0;
 
-    if ( (*_params)[STR_QUIET] == 0)  {  progress =  new Progress (_estimateSeqNb, "FASTA to binary conversion");  }
+    if ( _input->get(STR_QUIET) == 0)  {  progress =  new Progress (_estimateSeqNb, "FASTA to binary conversion");  }
 
     // We convert the FASTA bank in binary format
     IProperties* props = BankHelper::singleton().convert (bank, *_bankBinary, progress);
