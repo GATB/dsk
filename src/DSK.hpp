@@ -39,11 +39,11 @@ public:
     
     /** */
     static const char* STR_KMER_SIZE;
-    static const char* STR_DB;
+    static const char* STR_DATABASE;
     static const char* STR_MAX_MEMORY;
     static const char* STR_NKS;
     static const char* STR_PREFIX;
-    static const char* STR_OUTPUT;
+    static const char* STR_SOLID_KMERS;
 
 private:
 
@@ -60,19 +60,13 @@ private:
     void fillSolidKmers (collections::Bag<kmer::impl::kmer_type>*  solidKmers);
 
     /** */
-    virtual tools::dp::Iterator<Sequence>* createSequenceIterator (tools::dp::IteratorListener* progress);
-
-    /** */
     virtual collections::Bag<kmer::impl::kmer_type>* createSolidKmersBag ();
 
     /** */
     void buildBankBinary (IBank& bank);
 
     /** */
-    std::string getPartitionUri ()  {  return _prefix + "%d";  }
-
-    /** */
-    std::string getOutputUri ()  { return _prefix + _solidFile; }
+    std::string getPartitionUri ()  {  return _input->getStr (STR_PREFIX) + "%d";  }
 
     bank::IBank* _bankBinary;
 
@@ -80,8 +74,6 @@ private:
     std::string _filename;
     size_t      _kmerSize;
     size_t      _nks;
-    std::string _prefix;
-    std::string _solidFile;
 
     u_int64_t _estimateSeqNb;
     u_int64_t _estimateSeqTotalSize;

@@ -47,12 +47,12 @@ using namespace gatb::core::kmer::impl;
 /********************************************************************************/
 // We define some string constants.
 /********************************************************************************/
-const char* DSK::STR_KMER_SIZE  = "-kmer-size";
-const char* DSK::STR_DB         = "-db";
-const char* DSK::STR_MAX_MEMORY = "-max-memory";
-const char* DSK::STR_NKS        = "-nks";
-const char* DSK::STR_PREFIX     = "-prefix";
-const char* DSK::STR_OUTPUT     = "-out";
+const char* DSK::STR_KMER_SIZE   = "-kmer-size";
+const char* DSK::STR_DATABASE    = "-db";
+const char* DSK::STR_MAX_MEMORY  = "-max-memory";
+const char* DSK::STR_NKS         = "-nks";
+const char* DSK::STR_PREFIX      = "-prefix";
+const char* DSK::STR_SOLID_KMERS = "-solid-kmers";
 
 /********************************************************************************/
 
@@ -125,17 +125,17 @@ private:
 ** REMARKS :
 *********************************************************************/
 DSK::DSK ()
-    : Tool ("dsk"), _bankBinary(0), _filename(""), _kmerSize(27), _nks(3), _prefix("dsk."), _solidFile(""),
+    : Tool ("dsk"), _bankBinary(0), _filename(""), _kmerSize(27), _nks(3),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(1000), _volume(0), _nb_passes(0), _nb_partitions(0)
 {
     /** We add options specific to DSK. */
-    _parser->add (new OptionOneParam (DSK::STR_KMER_SIZE,   "size of a kmer",                       true));
-    _parser->add (new OptionOneParam (DSK::STR_DB,          "URI of the bank",                      true));
-    _parser->add (new OptionOneParam (DSK::STR_MAX_MEMORY,  "max memory",                           false));
-    _parser->add (new OptionOneParam (DSK::STR_NKS,         "abundance threshold for solid kmers",  false));
-    _parser->add (new OptionOneParam (DSK::STR_OUTPUT,      "solid kmers file",                     false));
-    _parser->add (new OptionOneParam (DSK::STR_PREFIX,      "prefix URI for temporary files",       false));
+    _parser->add (new OptionOneParam (DSK::STR_KMER_SIZE,   "size of a kmer",                       true            ));
+    _parser->add (new OptionOneParam (DSK::STR_DATABASE,    "URI of the bank",                      true            ));
+    _parser->add (new OptionOneParam (DSK::STR_MAX_MEMORY,  "max memory",                           false,  "1000"  ));
+    _parser->add (new OptionOneParam (DSK::STR_NKS,         "abundance threshold for solid kmers",  false,  "3"     ));
+    _parser->add (new OptionOneParam (DSK::STR_SOLID_KMERS, "solid kmers file",                     false,  "solid" ));
+    _parser->add (new OptionOneParam (DSK::STR_PREFIX,      "prefix URI for temporary files",       false,  "dsk."  ));
 }
 
 /*********************************************************************
@@ -161,14 +161,13 @@ DSK::~DSK ()
 *********************************************************************/
 void DSK::execute ()
 {
-    IProperty* prop = 0;
-
     _kmerSize   = _input->getInt (STR_KMER_SIZE);
-    _filename   = _input->getStr (STR_DB);
-    _max_memory = _input->getInt (STR_MAX_MEMORY,   1000);
-    _nks        = _input->getInt (STR_NKS,          3);
-    _prefix     = _input->getStr (STR_PREFIX,       "dsk.");
-    _solidFile  = _input->getStr (STR_OUTPUT,       "solid.bin");
+    _filename   = _input->getStr (STR_DATABASE);
+    _max_memory = _input->getInt (STR_MAX_MEMORY);
+    _nks        = _input->getInt (STR_NKS);
+
+    /** We add the prefix to the solid kmers uri. */
+    _input->setStr (STR_SOLID_KMERS, _input->getStr (STR_PREFIX) + _input->getStr (STR_SOLID_KMERS));
 
     /** We create the binary bank holding the reads in binary format. */
     _bankBinary = new BankBinary (_filename + ".bin");
@@ -177,7 +176,7 @@ void DSK::execute ()
     configure ();
 
     // We create the sequences iterator.
-    Iterator<Sequence>* itSeq = createSequenceIterator (new Progress (_estimateSeqNb, "DSK"));
+    Iterator<Sequence>* itSeq = createIterator<Sequence> (_bankBinary->iterator(), _estimateSeqNb, "DSK");
     LOCAL (itSeq);
 
     // We create the solid kmers bag
@@ -198,9 +197,12 @@ void DSK::execute ()
     solidKmers->flush();
 
     /** We gather some statistics. */
-    _output->add (1, "result");
-    _output->add (2, "solid kmers nb",   "%ld", (System::file().getSize(getOutputUri()) / sizeof (kmer_type)) );
-    _output->add (2, "solid kmers uri",  "%s",  getOutputUri().c_str());
+    _info->add (1, "stats");
+    _info->add (2, "solid kmers nb",   "%ld", (System::file().getSize(_input->getStr (STR_SOLID_KMERS)) / sizeof (kmer_type)) );
+    _info->add (2, "solid kmers uri",  _input->getStr (STR_SOLID_KMERS));
+
+    /** We set the result of the execution. */
+    _output->add (0, STR_SOLID_KMERS,  _input->getStr (STR_SOLID_KMERS));
 }
 
 /*********************************************************************
@@ -218,9 +220,6 @@ void DSK::configure ()
 
     // We get some estimations about the bank
     bank.estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
-
-    // We may have to build the binary bank if not already existing.
-    buildBankBinary (bank);
 
     // We get the available space (in MBytes) of the current directory.
     u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
@@ -249,18 +248,22 @@ void DSK::configure ()
     } while (1);
 
     /** We gather some statistics. */
-    _output->add (1, "config");
-    _output->add (2, "current directory", System::file().getCurrentDirectory());
-    _output->add (2, "available space",   "%ld", available_space);
-    _output->add (2, "bank size",         "%ld", bankSize);
-    _output->add (2, "sequence number",   "%ld", _estimateSeqNb);
-    _output->add (2, "sequence volume",   "%ld", _estimateSeqTotalSize / MBYTE);
-    _output->add (2, "kmers number",      "%ld", kmersNb);
-    _output->add (2, "kmers volume",      "%ld", _volume);
-    _output->add (2, "max disk space",    "%ld", _max_disk_space);
-    _output->add (2, "nb passes",         "%d",  _nb_passes);
-    _output->add (2, "nb partitions",     "%d",  _nb_partitions);
-    _output->add (2, "nb bits per kmer",  "%d",  kmer_type::getSize());
+    _info->add (1, "config");
+    _info->add (2, "current directory", System::file().getCurrentDirectory());
+    _info->add (2, "available space",   "%ld", available_space);
+    _info->add (2, "bank size",         "%ld", bankSize);
+    _info->add (2, "sequence number",   "%ld", _estimateSeqNb);
+    _info->add (2, "sequence volume",   "%ld", _estimateSeqTotalSize / MBYTE);
+    _info->add (2, "kmers number",      "%ld", kmersNb);
+    _info->add (2, "kmers volume",      "%ld", _volume);
+    _info->add (2, "max disk space",    "%ld", _max_disk_space);
+    _info->add (2, "nb passes",         "%d",  _nb_passes);
+    _info->add (2, "nb partitions",     "%d",  _nb_partitions);
+    _info->add (2, "nb bits per kmer",  "%d",  kmer_type::getSize());
+    _info->add (2, "nb cores",          "%d",  _dispatcher->getExecutionUnitsNumber());
+
+    // We may have to build the binary bank if not already existing.
+    buildBankBinary (bank);
 }
 
 /*********************************************************************
@@ -354,47 +357,12 @@ void DSK::fillSolidKmers (Bag<kmer_type>*  solidKmers)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Iterator<Sequence>* DSK::createSequenceIterator (IteratorListener* progress)
-{
-    /** We always use the provided argument in case we don't do anything in this method
-     * and the user doesn't release it. */
-    LOCAL (progress);
-
-    // We need an iterator on the FASTA bank.
-    Iterator<Sequence>* result = _bankBinary->iterator();
-
-    if ( _input->get(STR_QUIET) == 0)
-    {
-        // We create an iterator over the paired iterator on sequences
-        SubjectIterator<Sequence>* result2 = new SubjectIterator<Sequence> (result, 5*1000);
-
-        // We add a listener to the sequences iterator.
-        result2->addObserver (progress);
-
-        // We return the created sequence iterator.
-        return result2;
-    }
-    else
-    {
-        // We return the created sequence iterator.
-        return result;
-    }
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
 Bag<kmer_type>* DSK::createSolidKmersBag ()
 {
     /** We delete the solid kmers file. */
-    System::file().remove (getOutputUri());
+    System::file().remove (_input->getStr (STR_SOLID_KMERS));
 
-    return new BagCache<kmer_type> (new  BagFile<kmer_type> (getOutputUri()), 5*1000);
+    return new BagCache<kmer_type> (new  BagFile<kmer_type> (_input->getStr (STR_SOLID_KMERS)), 5*1000);
 }
 
 /*********************************************************************
@@ -416,5 +384,7 @@ void DSK::buildBankBinary (IBank& bank)
     // We convert the FASTA bank in binary format
     IProperties* props = BankHelper::singleton().convert (bank, *_bankBinary, progress);
     LOCAL (props);
+
+    _info->add (1, props);
 }
  

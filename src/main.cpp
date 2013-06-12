@@ -32,7 +32,7 @@ int main (int argc, char* argv[])
 
     catch (tools::misc::impl::OptionFailure& e)
     {
-        if (e.getParser().saw("-h"))    {   e.getParser().displayHelp   (stdout);   }
+        if (e.getParser().saw("-help")) {   e.getParser().displayHelp   (stdout);   }
         else                            {   e.getParser().displayErrors (stdout);   }
         return EXIT_FAILURE;
     }
