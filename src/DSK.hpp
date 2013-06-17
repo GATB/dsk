@@ -39,11 +39,10 @@ public:
     
     /** */
     static const char* STR_KMER_SIZE;
-    static const char* STR_DATABASE;
     static const char* STR_MAX_MEMORY;
+    static const char* STR_MAX_DISK;
     static const char* STR_NKS;
-    static const char* STR_PREFIX;
-    static const char* STR_SOLID_KMERS;
+    static const char* STR_URI_SOLID_KMERS;
 
 private:
 
@@ -63,15 +62,11 @@ private:
     virtual collections::Bag<kmer::impl::kmer_type>* createSolidKmersBag ();
 
     /** */
-    void buildBankBinary (IBank& bank);
-
-    /** */
-    std::string getPartitionUri ()  {  return _input->getStr (STR_PREFIX) + "%d";  }
+    std::string getPartitionUri ()  {  return _input->getStr (STR_URI_PREFIX) + "partition.%d";  }
 
     bank::IBank* _bankBinary;
 
     /** Shortcuts. */
-    std::string _filename;
     size_t      _kmerSize;
     size_t      _nks;
 

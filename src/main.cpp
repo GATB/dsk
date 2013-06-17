@@ -7,6 +7,7 @@
 
 /********************************************************************************/
 
+#include <BankConverter.hpp>
 #include <DSK.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -23,17 +24,19 @@ int main (int argc, char* argv[])
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
-        /** We create an instance of DSK class. */
-        DSK dsk;
+        misc::impl::ToolComposite tool;
+
+        tool.add (new BankConverter());
+        tool.add (new DSK());
 
         /** We execute dsk. */
-        dsk.run (argc, argv);
+        tool.run (argc, argv);
     }
 
     catch (tools::misc::impl::OptionFailure& e)
     {
-        if (e.getParser().saw("-help")) {   e.getParser().displayHelp   (stdout);   }
-        else                            {   e.getParser().displayErrors (stdout);   }
+        e.getParser().displayErrors (stdout);
+        e.getParser().displayHelp   (stdout);
         return EXIT_FAILURE;
     }
 
