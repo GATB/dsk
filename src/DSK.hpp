@@ -75,13 +75,13 @@ private:
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
  */
-template<typename T> class DSKAlgorithm
+template<typename T> class DSKAlgorithm : public misc::impl::ToolProxy
 {
 public:
 
     /** Constructor.
      * \param[in] dsk : Tool instance for dsk that holds input parameters. */
-    DSKAlgorithm (DSK* dsk);
+    DSKAlgorithm (misc::impl::Tool* dsk);
 
     /** Destructor */
     virtual ~DSKAlgorithm ();
@@ -118,22 +118,6 @@ public:
     void  execute ();
 
 private:
-
-    /** We need a reference on the DSK instance that will instantiate the DSKAlgorithm class. */
-    DSK* _dsk;
-
-    /** Shortcuts. */
-    misc::IProperties* getInput  ()  { return _dsk->_input;  }
-    misc::IProperties* getOutput ()  { return _dsk->_output; }
-    misc::IProperties* getInfo   ()  { return _dsk->_info;   }
-
-    /** Shortcuts. */
-    misc::impl::OptionsParser* getParser ()       { return _dsk->_parser;     }
-    dp::ICommandDispatcher*    getDispatcher ()   { return _dsk->_dispatcher; }
-
-    /** Shortcut. Should refer the DSK similar attribute. Note that we don't use a getter instead
-     * because we want to use the TIME_INFO macro that needs a variable name. */
-    misc::impl::TimeInfo& _timeInfo;
 
     bank::IBank* _bankBinary;
 
