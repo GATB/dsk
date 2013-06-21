@@ -61,8 +61,8 @@ const char* DSK::STR_URI_SOLID_KMERS    = "-solid-kmers";
 const char* DSK::STR_URI_HISTO          = "-histo";
 
 /********************************************************************************/
-static const char* progressFormat1 = "Pass %d/%d, Step 1: partitioning  ";
-static const char* progressFormat2 = "Pass %d/%d, Step 2: counting kmers";
+static const char* progressFormat1 = "Pass %d/%d, Step 1: partitioning        ";
+static const char* progressFormat2 = "Pass %d/%d, Step 2: counting kmers %2d/%2d";
 
 /*********************************************************************
 ** METHOD  :
@@ -105,6 +105,7 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
     }
 
     setProgress(0);
+    if (_histogram)  {  delete _histogram; }
 }
 
 /*********************************************************************
@@ -350,9 +351,6 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill solid kmers");
 
-    /** We update the message of the progress bar. */
-    _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
-
     Iterator<size_t>* itParts = new Range<size_t>::Iterator (0, _nb_partitions-1);
     LOCAL (itParts);
 
@@ -363,6 +361,9 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
     /** We parse each partition file. */
     for (itParts->first(); !itParts->isDone(); itParts->next())
     {
+        /** We update the message of the progress bar. */
+        _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes, itParts->item()+1, _nb_partitions);
+
         /** we build the name of the ith kmers partition file. */
         char filename[128];  snprintf (filename, sizeof(filename), getPartitionUri().c_str(), itParts->item());
 
