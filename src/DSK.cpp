@@ -152,7 +152,7 @@ void DSKAlgorithm<T>::execute ()
     LOCAL (solidKmers);
 
     /** We configure the progress bar. */
-    setProgress ( createIteratorListener (2 * _volume * MBYTE, "counting kmers"));
+    setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(T), "counting kmers"));
     _progress->init ();
 
     /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
@@ -291,7 +291,7 @@ public:
             nbWrittenKmers++;
         }
 
-        if (nbWrittenKmers > 50000)   {  _progress.inc (nbWrittenKmers * sizeof(T));  nbWrittenKmers = 0;  }
+        if (nbWrittenKmers > 50000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
     FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, BagFilePartition<T>& partition, IteratorListener* progress)
@@ -413,7 +413,7 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         }
 
         /** We update the progress bar. */
-        _progress->inc (kmers.size() * sizeof(T));
+        _progress->inc (kmers.size());
     }
 }
 
