@@ -11,11 +11,15 @@
 
 #include <DSK.hpp>
 
+#include <gatb/system/impl/System.hpp>
+
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/BagPartition.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+
+#include <gatb/tools/designpattern/impl/Command.hpp>
 
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
@@ -54,6 +58,11 @@ const char* DSK::STR_MAX_MEMORY         = "-max-memory";
 const char* DSK::STR_MAX_DISK           = "-max-disk";
 const char* DSK::STR_NKS                = "-nks";
 const char* DSK::STR_URI_SOLID_KMERS    = "-solid-kmers";
+const char* DSK::STR_URI_HISTO          = "-histo";
+
+/********************************************************************************/
+static const char* progressFormat1 = "Pass %d/%d, Step 1: partitioning  ";
+static const char* progressFormat2 = "Pass %d/%d, Step 2: counting kmers";
 
 /*********************************************************************
 ** METHOD  :
@@ -67,8 +76,10 @@ template<typename T>
 DSKAlgorithm<T>::DSKAlgorithm (Tool* dsk)  :
     ToolProxy (dsk),
     _bankBinary(0), _kmerSize(0), _nks(0),
+    _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
-    _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0)
+    _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
+    _histogram (0)
 {
 }
 
@@ -92,6 +103,8 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
         char filename[128];  snprintf (filename, sizeof(filename), getPartitionUri().c_str(), i);
         System::file().remove (filename);
     }
+
+    setProgress(0);
 }
 
 /*********************************************************************
@@ -109,14 +122,17 @@ void DSKAlgorithm<T>::execute ()
     getInput()->setInt (DSK::STR_MAX_MEMORY, getInput()->getInt (DSK::STR_MAX_MEMORY) / getInput()->getInt (DSK::STR_NB_CORES));
 
     /** Shortcuts attributes. */
-    _kmerSize       = getInput()->getInt (DSK::STR_KMER_SIZE);
-    _max_memory     = getInput()->getInt (DSK::STR_MAX_MEMORY);
-    _max_disk_space = getInput()->getInt (DSK::STR_MAX_DISK);
-    _nks            = getInput()->getInt (DSK::STR_NKS);
+    _kmerSize        = getInput()->getInt (DSK::STR_KMER_SIZE);
+    _max_memory      = getInput()->getInt (DSK::STR_MAX_MEMORY);
+    _max_disk_space  = getInput()->getInt (DSK::STR_MAX_DISK);
+    _nks             = getInput()->getInt (DSK::STR_NKS);
+
+    /** We setup the histogram if needed. */
+    if (getInput()->get(DSK::STR_URI_HISTO) != 0)  {  _histogram = new Histogram     (10000, getUriByKey (DSK::STR_URI_HISTO));  }
+    else                                           {  _histogram = new HistogramNull (); }
 
     /** We add the prefix to the solid kmers uri. */
     DSK* dsk = dynamic_cast<DSK*> (getRef());   if (!dsk)  { throw Exception ("dynamic cast failed"); }
-
     getInput()->setStr (DSK::STR_URI_SOLID_KMERS, dsk->getUriByKey (DSK::STR_URI_SOLID_KMERS) );
 
     /** We create the binary bank holding the reads in binary format. */
@@ -127,25 +143,34 @@ void DSKAlgorithm<T>::execute ()
     configure ();
 
     /** We create the sequences iterator. */
-    Iterator<Sequence>* itSeq = getRef()->createIterator<Sequence> (_bankBinary->iterator(), _estimateSeqNb, "DSK");
+    Iterator<Sequence>* itSeq = _bankBinary->iterator();
     LOCAL (itSeq);
 
     /** We create the solid kmers bag. */
     Bag<T>* solidKmers = createSolidKmersBag ();
     LOCAL (solidKmers);
 
+    /** We configure the progress bar. */
+    setProgress ( createIteratorListener (2 * _volume * MBYTE, "counting kmers"));
+    _progress->init ();
+
     /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
-    for (size_t pass=0; pass<_nb_passes; pass++)
+    for (_current_pass=0; _current_pass<_nb_passes; _current_pass++)
     {
         /** 1) We fill the partition files. */
-        fillPartitions (pass, itSeq);
+        fillPartitions (_current_pass, itSeq);
 
         /** 2) We fill the kmers solid file from the partition files. */
         fillSolidKmers (solidKmers);
     }
 
+    _progress->finish ();
+
     /** We flush the solid kmers file. */
     solidKmers->flush();
+
+    /** We save the histogram if any. */
+    _histogram->save ();
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
@@ -177,6 +202,7 @@ void DSKAlgorithm<T>::configure ()
     u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
     _volume = kmersNb * sizeof(T) / MBYTE;  // in MBytes
+    if (_volume == 0)   { _volume = 1; }    // tiny files fix
 
     if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, bankSize);  }
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
@@ -239,8 +265,7 @@ public:
     void operator() (Sequence& sequence)
     {
         vector<T> kmers;
-
-        Hash<T> hash;
+        Hash<T>   hash;
 
         /** We build the kmers from the current sequence. */
         model.build (sequence.getData(), kmers);
@@ -260,21 +285,30 @@ public:
             size_t p = reduced_kmer % nbPartitions;
 
             /** We write the kmer into the bag. */
-            _cache[p]->insert (kmers[i]);
+            _partition[p]->insert (kmers[i]);
+
+            nbWrittenKmers++;
         }
+
+        if (nbWrittenKmers > 50000)   {  _progress.inc (nbWrittenKmers * sizeof(T));  nbWrittenKmers = 0;  }
     }
 
-    FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, BagFilePartition<T>& partition)
-        : pass(currentPass), nbPass(nbPasses), nbPartitions(partition.size()), _cache(partition,getSynchro()), model(model)
-    {
-    }
+    FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, BagFilePartition<T>& partition, IteratorListener* progress)
+        : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition.size()), nbWrittenKmers(0),
+          _partition(partition,this->newSynchro()), _progress (progress,this->newSynchro())  {}
+
+    ~FillPartitions ()  {}
 
 private:
-    size_t pass;
-    size_t nbPass;
-    size_t nbPartitions;
-    BagCachePartition<T> _cache;
+
     Model<T>& model;
+    size_t    pass;
+    size_t    nbPass;
+    size_t    nbPartitions;
+    size_t    nbWrittenKmers;
+
+    BagCachePartition<T> _partition;
+    ProgressSynchro      _progress;
 };
 
 /*********************************************************************
@@ -296,8 +330,11 @@ void DSKAlgorithm<T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
     /** We create the partition files for the current pass. */
     BagFilePartition<T> partitions (_nb_partitions, getPartitionUri());
 
+    /** We update the message of the progress bar. */
+    _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
+
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, partitions));
+    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, partitions, _progress));
 }
 
 /*********************************************************************
@@ -313,12 +350,15 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill solid kmers");
 
-    Iterator<size_t>* itParts = getRef()->createIterator<size_t> (
-        new Range<size_t>::Iterator (0, _nb_partitions-1),
-        _nb_partitions,
-        "read partitions"
-    );
+    /** We update the message of the progress bar. */
+    _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
+
+    Iterator<size_t>* itParts = new Range<size_t>::Iterator (0, _nb_partitions-1);
     LOCAL (itParts);
+
+    /** We allocate a vector that will be filled by partitions file (one at time).
+     *  We provide an estimation size according to the maximum memory allowed. */
+    vector<T> kmers ( (_max_memory * MBYTE) / sizeof(T));
 
     /** We parse each partition file. */
     for (itParts->first(); !itParts->isDone(); itParts->next())
@@ -326,14 +366,22 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         /** we build the name of the ith kmers partition file. */
         char filename[128];  snprintf (filename, sizeof(filename), getPartitionUri().c_str(), itParts->item());
 
-        IteratorFile<T> it (filename);
-        vector<T> kmers (System::file().getSize(filename) / sizeof(T));
-
-        /** We directly fill the vector from the current partition file. */
-        it.fill (kmers);
+        /** We get the length of the current partition file. */
+        size_t partitionLen = System::file().getSize(filename) / sizeof(T);
 
         /** We check that we got something. */
-        if (kmers.empty())  { throw Exception ("DSK: no solid kmers found"); }
+        if (partitionLen == 0)  { throw Exception ("DSK: no solid kmers found"); }
+
+        /** We resize our vector that will be filled with the partition file content.
+         * NOTE: we add an extra item and we will set it to the maximum kmer value. */
+        kmers.resize (1 + partitionLen);
+
+        /** We directly fill the vector from the current partition file. */
+        IteratorFile<T> it (filename);   it.fill (kmers, partitionLen);
+
+        /** We set the extra item to a max value, so we are sure it will sorted at the last location.
+         * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
+        kmers[partitionLen] = ~0;
 
 #ifdef OMP
         omptl::sort (kmers.begin (), kmers.end ());
@@ -344,29 +392,27 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         u_int32_t abundance = 0;
         T previous_kmer = kmers.front();
 
+        /** We loop over the sorted solid kmers. */
         for (typename vector<T>::iterator itKmers = kmers.begin(); itKmers != kmers.end(); ++itKmers)
         {
-            T current_kmer = *itKmers;
-
-            if (current_kmer == previous_kmer)  {   abundance++;  }
+            if (*itKmers == previous_kmer)  {   abundance++;  }
             else
             {
-                /** We should update the abundance histogram => to be done. */
+                /** We should update the abundance histogram*/
+                _histogram->inc (abundance);
 
                 /** We check that the current abundance is in the correct range. */
                 if (abundance >= _nks  && abundance <= max_couv)
                 {
                     solidKmers->insert (previous_kmer);
                 }
-                abundance = 1;
+                abundance     = 1;
+                previous_kmer = *itKmers;
             }
-            previous_kmer = current_kmer;
         }
 
-        if (abundance >= _nks && abundance <= max_couv)
-        {
-            solidKmers->insert (previous_kmer);
-        }
+        /** We update the progress bar. */
+        _progress->inc (kmers.size() * sizeof(T));
     }
 }
 
@@ -387,21 +433,6 @@ Bag<T>* DSKAlgorithm<T>::createSolidKmersBag ()
     return new BagCache<T> (new  BagFile<T> (getInput()->getStr (DSK::STR_URI_SOLID_KMERS)), 10*1000);
 }
 
-/*********************************************************************************/
-/* We define here some concrete subclasses of DSKAlgorithm with specific integer */
-/* sizes. According to the end user choice for the kmer size, we can instantiate */
-/* one of these classes.                                                         */
-/*********************************************************************************/
-
-class DSKAlgorithm32  : public DSKAlgorithm<math::NativeInt64>   {  public: DSKAlgorithm32  (DSK* dsk) : DSKAlgorithm<math::NativeInt64>  (dsk) {}  };
-#ifdef INT128_FOUND
-class DSKAlgorithm64  : public DSKAlgorithm<math::NativeInt128>  {  public: DSKAlgorithm64  (DSK* dsk) : DSKAlgorithm<math::NativeInt128> (dsk) {}  };
-#else
-class DSKAlgorithm64  : public DSKAlgorithm<math::LargeInt<2> >  {  public: DSKAlgorithm64  (DSK* dsk) : DSKAlgorithm<math::LargeInt<2> > (dsk) {}  };
-#endif
-class DSKAlgorithm96  : public DSKAlgorithm<math::LargeInt<3> >  {  public: DSKAlgorithm96  (DSK* dsk) : DSKAlgorithm<math::LargeInt<3> > (dsk) {}  };
-class DSKAlgorithm128 : public DSKAlgorithm<math::LargeInt<4> >  {  public: DSKAlgorithm128 (DSK* dsk) : DSKAlgorithm<math::LargeInt<4> > (dsk) {}  };
-
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -419,6 +450,7 @@ DSK::DSK () : Tool ("dsk")
     getParser()->add (new OptionOneParam (DSK::STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
     getParser()->add (new OptionOneParam (DSK::STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
     getParser()->add (new OptionOneParam (DSK::STR_URI_SOLID_KMERS, "solid kmers file",                     false,  "solid" ));
+    getParser()->add (new OptionOneParam (DSK::STR_URI_HISTO,       "outputs histogram of kmers abundance", false));
 }
 
 /*********************************************************************
@@ -434,10 +466,25 @@ void DSK::execute ()
     /** we get the kmer size chosen by the end user. */
     size_t kmerSize = getInput()->getInt (DSK::STR_KMER_SIZE);
 
+    Tool* tool = 0;
+
     /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
-         if (kmerSize < 32)     { DSKAlgorithm32 (this).execute ();  }
-    else if (kmerSize < 64)     { DSKAlgorithm64 (this).execute ();  }
-    else if (kmerSize < 96)     { DSKAlgorithm96 (this).execute ();  }
-    else if (kmerSize < 128)    { DSKAlgorithm128(this).execute ();  }
+    if (kmerSize < 32)        {  tool = new DSKAlgorithm <math::NativeInt64> (this);  }
+    else if (kmerSize < 64)
+    {
+#ifdef INT128_FOUND
+        tool = new DSKAlgorithm <math::NativeInt128> (this);
+#else
+        tool = new DSKAlgorithm <math::LargeInt<2> > (this);
+#endif
+    }
+    else if (kmerSize < 96)   {  tool = new DSKAlgorithm <math::LargeInt<3> > (this);  }
+    else if (kmerSize < 128)  {  tool = new DSKAlgorithm <math::LargeInt<4> > (this);  }
     else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
+
+    /** We use locally the created instance. */
+    LOCAL(tool);
+
+    /** We execute the tool. */
+    tool->execute ();
 }

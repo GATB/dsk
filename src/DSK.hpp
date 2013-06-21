@@ -13,6 +13,8 @@
 #include <gatb/tools/misc/impl/Tool.hpp>
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/misc/impl/Histogram.hpp>
 
 #include <string>
 
@@ -48,6 +50,7 @@ public:
     static const char* STR_MAX_DISK;
     static const char* STR_NKS;
     static const char* STR_URI_SOLID_KMERS;
+    static const char* STR_URI_HISTO;
 
 private:
 
@@ -125,6 +128,9 @@ private:
     size_t      _kmerSize;
     size_t      _nks;
 
+    dp::IteratorListener* _progress;
+    void setProgress (dp::IteratorListener* progress)  { SP_SETATTR(progress); }
+
     /** Values computed for algorithm parameterization. In particular, we have one value for the number
      * of passes and one value for the number of partitions.
      * Such values are computed both:
@@ -139,6 +145,9 @@ private:
     u_int64_t _volume;
     u_int32_t _nb_passes;
     u_int32_t _nb_partitions;
+    u_int32_t _current_pass;
+
+    misc::impl::Histogram* _histogram;;
 };
 
 /********************************************************************************/
