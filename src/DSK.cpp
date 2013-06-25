@@ -25,9 +25,9 @@
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
 
-#ifdef OMP
-#include <omptl/omptl_algorithm>
-#endif
+//#ifdef OMP
+//#include <omptl/omptl_algorithm>
+//#endif
 
 /********************************************************************************/
 // We use the required packages
@@ -384,11 +384,11 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
          * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
         kmers[partitionLen] = ~0;
 
-#ifdef OMP
-        omptl::sort (kmers.begin (), kmers.end ());
-#else
+//#ifdef OMP
+//        omptl::sort (kmers.begin (), kmers.end ());
+//#else
         std::sort (kmers.begin (), kmers.end ());
-#endif
+//#endif
         u_int32_t max_couv  = 2147483646;
         u_int32_t abundance = 0;
         T previous_kmer = kmers.front();
