@@ -61,8 +61,8 @@ const char* DSK::STR_URI_SOLID_KMERS    = "-solid-kmers";
 const char* DSK::STR_URI_HISTO          = "-histo";
 
 /********************************************************************************/
-static const char* progressFormat1 = "Pass %d/%d, Step 1: partitioning        ";
-static const char* progressFormat2 = "Pass %d/%d, Step 2: counting kmers %2d/%2d";
+static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning        ";
+static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers %2d/%2d";
 
 /*********************************************************************
 ** METHOD  :
