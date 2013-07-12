@@ -15,6 +15,7 @@
 
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/BagPartition.hpp>
+#include <gatb/tools/collections/impl/OAHash.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -24,6 +25,9 @@
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
+
+#include <math.h>
+#include <algorithm>
 
 #ifdef OMP
 #include <omptl/omptl_algorithm>
@@ -59,10 +63,11 @@ const char* DSK::STR_MAX_DISK           = "-max-disk";
 const char* DSK::STR_NKS                = "-nks";
 const char* DSK::STR_URI_SOLID_KMERS    = "-solid-kmers";
 const char* DSK::STR_URI_HISTO          = "-histo";
+const char* DSK::STR_PARTITION_TYPE     = "-partition-type";
 
 /********************************************************************************/
-static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning        ";
-static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers %2d/%2d";
+static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning  ";
+static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 
 /*********************************************************************
 ** METHOD  :
@@ -75,7 +80,7 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers %2
 template<typename T>
 DSKAlgorithm<T>::DSKAlgorithm (Tool* dsk)  :
     ToolProxy (dsk),
-    _bankBinary(0), _kmerSize(0), _nks(0),
+    _bankBinary(0), _kmerSize(0), _nks(0), _partitionType(0), _nbCores(0),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -100,8 +105,7 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
     /** We remove physically the partition files. */
     for (size_t i=0; i<_nb_partitions; i++)
     {
-        char filename[128];  snprintf (filename, sizeof(filename), getPartitionUri().c_str(), i);
-        System::file().remove (filename);
+        System::file().remove (getPartitionUri(i));
     }
 
     setProgress(0);
@@ -127,6 +131,8 @@ void DSKAlgorithm<T>::execute ()
     _max_memory      = getInput()->getInt (DSK::STR_MAX_MEMORY);
     _max_disk_space  = getInput()->getInt (DSK::STR_MAX_DISK);
     _nks             = getInput()->getInt (DSK::STR_NKS);
+    _partitionType   = getInput()->getInt (DSK::STR_PARTITION_TYPE);
+    _nbCores         = getDispatcher()->getExecutionUnitsNumber();
 
     /** We setup the histogram if needed. */
     if (getInput()->get(DSK::STR_URI_HISTO) != 0)  {  _histogram = new Histogram     (10000, getUriByKey (DSK::STR_URI_HISTO));  }
@@ -193,6 +199,8 @@ void DSKAlgorithm<T>::execute ()
 template<typename T>
 void DSKAlgorithm<T>::configure ()
 {
+    float load_factor = 0.7;
+
     /** We get some information about the bank. */
     _bankBinary->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
 
@@ -217,6 +225,12 @@ void DSKAlgorithm<T>::configure ()
         volume_per_pass = _volume / _nb_passes;
         _nb_partitions  = ( volume_per_pass / _max_memory ) + 1;
 
+        if (_partitionType == 0)
+        {
+            _nb_partitions = (u_int32_t) ceil((float) _nb_partitions / load_factor);
+            _nb_partitions = ((_nb_partitions * OAHash<T>::size_entry()) + sizeof(T)-1) / sizeof(T); // also adjust for hash overhead
+        }
+
         if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
         else                                    { break;         }
 
@@ -237,25 +251,8 @@ void DSKAlgorithm<T>::configure ()
     getInfo()->add (2, "nb partitions",     "%d",  _nb_partitions);
     getInfo()->add (2, "nb bits per kmer",  "%d",  T::getSize());
     getInfo()->add (2, "nb cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
+    getInfo()->add (2, "partition type",    "%d",  _partitionType);
 }
-
-/********************************************************************************/
-
-template<typename T>
-struct Hash  {   T operator () (T& lkmer)
-{
-    T kmer_hash;
-
-    kmer_hash  = lkmer ^ (lkmer >> 14);
-    kmer_hash  = (~kmer_hash) + (kmer_hash << 18);
-    kmer_hash ^= (kmer_hash >> 31);
-    kmer_hash  = kmer_hash * 21;
-    kmer_hash ^= (kmer_hash >> 11);
-    kmer_hash += (kmer_hash << 6);
-    kmer_hash ^= (kmer_hash >> 22);
-
-    return kmer_hash;
-}};
 
 /********************************************************************************/
 template<typename T>
@@ -265,17 +262,31 @@ public:
 
     void operator() (Sequence& sequence)
     {
-        vector<T> kmers;
-        Hash<T>   hash;
+        /** By default, we will use the provided data with a ASCII encoding. */
+        tools::misc::Data* data = & sequence.getData();
+
+        /** We may have to expand the binary data to integer format. */
+        if (sequence.getData().getEncoding() == tools::misc::Data::BINARY)
+        {
+            size_t expandedLen = sequence.getData().size() ;
+
+            if (expandedLen > binaryData.size())  {  binaryData.resize (expandedLen + 4);  }
+
+            /** We convert the provided binary data into integer encoding. */
+            tools::misc::Data::convert (sequence.getData(), binaryData);
+
+            /** The actual data will be the binary data. */
+            data = &binaryData;
+        }
 
         /** We build the kmers from the current sequence. */
-        model.build (sequence.getData(), kmers);
+        model.build (*data, kmers);
 
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
         {
             /** We hash the current kmer. */
-            T h = hash (kmers[i]);
+            T h = oahash (kmers[i]);
 
             /** We check whether this kmer has to be processed during the current pass. */
             if ((h % nbPass) != pass)  { continue; }
@@ -291,7 +302,7 @@ public:
             nbWrittenKmers++;
         }
 
-        if (nbWrittenKmers > 50000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
+        if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
     FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, BagFilePartition<T>& partition, IteratorListener* progress)
@@ -308,8 +319,12 @@ private:
     size_t    nbPartitions;
     size_t    nbWrittenKmers;
 
+    tools::misc::Data  binaryData;
+
     BagCachePartition<T> _partition;
     ProgressSynchro      _progress;
+
+    vector<T> kmers;
 };
 
 /*********************************************************************
@@ -329,13 +344,178 @@ void DSKAlgorithm<T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
     Model<T> model (_kmerSize);
 
     /** We create the partition files for the current pass. */
-    BagFilePartition<T> partitions (_nb_partitions, getPartitionUri());
+    BagFilePartition<T> partitions (_nb_partitions, getPartitionFormat());
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, partitions, _progress));
+    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, partitions, _progress), 15*1000);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+
+/********************************************************************************/
+/** */
+template<typename T>
+class PartitionsCommand : public ICommand
+{
+public:
+    PartitionsCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro)
+        : _nks(algo.getNks()), _solidKmers(solidKmers, 10*1000), _filename(filename), _progress(algo.getProgress(), synchro)   {}
+
+    ~PartitionsCommand ()  { _solidKmers.flush (); }
+
+protected:
+    size_t           _nks;
+    string           _filename;
+    BagCache<T>      _solidKmers;
+    ProgressSynchro  _progress;
+
+    void add (const T& kmer, size_t abundance)
+    {
+        u_int32_t max_couv  = 2147483646;
+
+        /** We should update the abundance histogram*/
+        // _histogram->inc (abundance);
+
+        /** We check that the current abundance is in the correct range. */
+        if (abundance >= this->_nks  && abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
+    }
+};
+
+/********************************************************************************/
+/** */
+template<typename T>
+class PartitionsByHashCommand : public PartitionsCommand<T>
+{
+public:
+
+    PartitionsByHashCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro, u_int64_t hashMemory)
+        : PartitionsCommand<T> (algo, solidKmers, filename, synchro), _hashMemory(hashMemory)  {}
+
+    void execute ()
+    {
+        size_t count=0;
+
+        /** We need a map for storing part of solid kmers. */
+        OAHash<T> hash (_hashMemory);
+
+        /** We directly fill the vector from the current partition file. */
+        IteratorFile<T> it (this->_filename);
+        for (it.first(); !it.isDone(); it.next())
+        {
+            hash.increment (*it);
+
+            /** Some display. */
+            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
+        }
+
+        /** We loop over the solid kmers map. */
+        Iterator < pair<T,u_int32_t> >* itKmerAbundance = hash.iterator();
+        LOCAL (itKmerAbundance);
+
+        for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
+        {
+            /** Shortcut. */
+            pair<T,u_int32_t>& p = itKmerAbundance->item();
+
+            /** We may add this kmer to the solid kmers bag. */
+            add (p.first, p.second);
+        }
+    }
+
+private:
+    u_int64_t _hashMemory;
+};
+
+/********************************************************************************/
+/** */
+template<typename T>
+class PartitionsByVectorCommand : public PartitionsCommand<T>
+{
+    vector<T> kmers;
+
+public:
+
+    PartitionsByVectorCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro)
+        : PartitionsCommand<T> (algo, solidKmers, filename, synchro)
+          {}
+
+    void execute ()
+    {
+        /** We get the length of the current partition file. */
+        size_t partitionLen = System::file().getSize(this->_filename) / sizeof(T);
+
+        /** We check that we got something. */
+        if (partitionLen == 0)  { throw Exception ("DSK: no solid kmers found"); }
+
+        /** We resize our vector that will be filled with the partition file content.
+         * NOTE: we add an extra item and we will set it to the maximum kmer value. */
+        kmers.resize (1 + partitionLen);
+
+        /** We directly fill the vector from the current partition file. */
+        IteratorFile<T> it (this->_filename);   it.fill (kmers, partitionLen);
+
+        /** We set the extra item to a max value, so we are sure it will sorted at the last location.
+         * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
+        kmers[partitionLen] = ~0;
+
+        /** We sort the vector. */
+#ifdef OMP
+        omptl::sort (kmers.begin (), kmers.end ());
+#else
+        std::sort (kmers.begin (), kmers.end ());
+#endif
+
+        u_int32_t abundance = 0;
+        T previous_kmer = kmers.front();
+
+        /** We loop over the sorted solid kmers. */
+        for (typename vector<T>::iterator itKmers = kmers.begin(); itKmers != kmers.end(); ++itKmers)
+        {
+            if (*itKmers == previous_kmer)  {   abundance++;  }
+            else
+            {
+                add (previous_kmer, abundance);
+
+                abundance     = 1;
+                previous_kmer = *itKmers;
+            }
+        }
+
+        /** We update the progress bar. */
+        this->_progress.inc (kmers.size());
+    }
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename T>
+std::vector<size_t> DSKAlgorithm<T>::getNbCoresList ()
+{
+    std::vector<size_t> result;
+
+    for (size_t p=0; p<_nb_partitions; )
+    {
+        size_t i=0;  for (i=0; i<_nbCores && p<_nb_partitions; i++, p++)  {}
+        result.push_back (i);
+    }
+
+    return result;
 }
 
 /*********************************************************************
@@ -351,70 +531,42 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill solid kmers");
 
-    Iterator<size_t>* itParts = new Range<size_t>::Iterator (0, _nb_partitions-1);
-    LOCAL (itParts);
+    /** We update the message of the progress bar. */
+    _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
 
-    /** We allocate a vector that will be filled by partitions file (one at time).
-     *  We provide an estimation size according to the maximum memory allowed. */
-    vector<T> kmers ( (_max_memory * MBYTE) / sizeof(T));
+    ISynchronizer* synchro = System::thread().newSynchronizer();
 
-    /** We parse each partition file. */
-    for (itParts->first(); !itParts->isDone(); itParts->next())
+    /** We retrieve the list of cores number for dispatching N partitions in N threads.
+     *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.
+     */
+    vector<size_t> coreList = getNbCoresList();
+
+    size_t p = 0;
+    for (size_t i=0; i<coreList.size(); i++)
     {
-        /** We update the message of the progress bar. */
-        _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes, itParts->item()+1, _nb_partitions);
+        vector<ICommand*> cmds;
 
-        /** we build the name of the ith kmers partition file. */
-        char filename[128];  snprintf (filename, sizeof(filename), getPartitionUri().c_str(), itParts->item());
+        size_t currentNbCores = coreList[i];
 
-        /** We get the length of the current partition file. */
-        size_t partitionLen = System::file().getSize(filename) / sizeof(T);
+        /** We correct the number of memory per map according to the max allowed memory.
+         * Note that _max_memory has initially been divided by the user provided cores number. */
+        u_int64_t mem = (_max_memory*MBYTE*_nbCores)/currentNbCores;
 
-        /** We check that we got something. */
-        if (partitionLen == 0)  { throw Exception ("DSK: no solid kmers found"); }
-
-        /** We resize our vector that will be filled with the partition file content.
-         * NOTE: we add an extra item and we will set it to the maximum kmer value. */
-        kmers.resize (1 + partitionLen);
-
-        /** We directly fill the vector from the current partition file. */
-        IteratorFile<T> it (filename);   it.fill (kmers, partitionLen);
-
-        /** We set the extra item to a max value, so we are sure it will sorted at the last location.
-         * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
-        kmers[partitionLen] = ~0;
-
-#ifdef OMP
-        omptl::sort (kmers.begin (), kmers.end ());
-#else
-        std::sort (kmers.begin (), kmers.end ());
-#endif
-        u_int32_t max_couv  = 2147483646;
-        u_int32_t abundance = 0;
-        T previous_kmer = kmers.front();
-
-        /** We loop over the sorted solid kmers. */
-        for (typename vector<T>::iterator itKmers = kmers.begin(); itKmers != kmers.end(); ++itKmers)
+        for (size_t j=0; j<currentNbCores; j++, p++)
         {
-            if (*itKmers == previous_kmer)  {   abundance++;  }
-            else
-            {
-                /** We should update the abundance histogram*/
-                _histogram->inc (abundance);
+            ICommand* cmd = 0;
 
-                /** We check that the current abundance is in the correct range. */
-                if (abundance >= _nks  && abundance <= max_couv)
-                {
-                    solidKmers->insert (previous_kmer);
-                }
-                abundance     = 1;
-                previous_kmer = *itKmers;
-            }
+            if (_partitionType == 0)   {  cmd = new PartitionsByHashCommand<T>   (*this, solidKmers, getPartitionUri(p), synchro, mem);  }
+            else                       {  cmd = new PartitionsByVectorCommand<T> (*this, solidKmers, getPartitionUri(p), synchro);       }
+
+            cmds.push_back (cmd);
         }
 
-        /** We update the progress bar. */
-        _progress->inc (kmers.size());
+        getDispatcher()->dispatchCommands (cmds, 0);
     }
+
+    /** Some cleanup. */
+    delete synchro;
 }
 
 /*********************************************************************
@@ -431,7 +583,7 @@ Bag<T>* DSKAlgorithm<T>::createSolidKmersBag ()
     /** We delete the solid kmers file. */
     System::file().remove (getInput()->getStr (DSK::STR_URI_SOLID_KMERS));
 
-    return new BagCache<T> (new  BagFile<T> (getInput()->getStr (DSK::STR_URI_SOLID_KMERS)), 10*1000);
+    return new  BagFile<T> (getInput()->getStr (DSK::STR_URI_SOLID_KMERS));
 }
 
 /*********************************************************************
@@ -452,6 +604,7 @@ DSK::DSK () : Tool ("dsk")
     getParser()->add (new OptionOneParam (DSK::STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
     getParser()->add (new OptionOneParam (DSK::STR_URI_SOLID_KMERS, "solid kmers file",                     false,  "solid" ));
     getParser()->add (new OptionOneParam (DSK::STR_URI_HISTO,       "outputs histogram of kmers abundance", false));
+    getParser()->add (new OptionOneParam (DSK::STR_PARTITION_TYPE,  "partitioning type : 0 for map (default), 1 for vector", false, "0"));
 }
 
 /*********************************************************************

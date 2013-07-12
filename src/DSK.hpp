@@ -51,6 +51,7 @@ public:
     static const char* STR_NKS;
     static const char* STR_URI_SOLID_KMERS;
     static const char* STR_URI_HISTO;
+    static const char* STR_PARTITION_TYPE;
 
 private:
 
@@ -103,6 +104,9 @@ public:
      */
     void fillSolidKmers (collections::Bag<T>*  solidKmers);
 
+    /** */
+    std::vector <size_t> getNbCoresList ();
+
     /** Create the bag in which the solid kmers will be put into. The actual kind of bag is likely
      * to be a file.
      * \return the solid kmers bag.
@@ -113,12 +117,25 @@ public:
      * in particular a suffix may be used.
      * \return the output format.
      */
-    std::string getPartitionUri () {  return getInput()->getStr (DSK::STR_URI_PREFIX) + "partition.%d";  }
+    std::string getPartitionFormat () {  return getInput()->getStr (DSK::STR_URI_PREFIX) + "partition.%d";  }
+
+
+    std::string getPartitionUri (size_t i)
+    {
+        char filename[128];  snprintf (filename, sizeof(filename), getPartitionFormat().c_str(), i);
+        return filename;
+    }
 
     /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
      * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
      */
     void  execute ();
+
+    /** Get the iterator listener instance. */
+    dp::IteratorListener* getProgress ()  { return _progress; }
+
+    /** */
+    size_t getNks ()  { return _nks; }
 
 private:
 
@@ -127,6 +144,8 @@ private:
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
     size_t      _nks;
+    size_t      _partitionType;
+    size_t      _nbCores;
 
     dp::IteratorListener* _progress;
     void setProgress (dp::IteratorListener* progress)  { SP_SETATTR(progress); }
@@ -147,7 +166,7 @@ private:
     u_int32_t _nb_partitions;
     u_int32_t _current_pass;
 
-    misc::impl::Histogram* _histogram;;
+    misc::impl::Histogram* _histogram;
 };
 
 /********************************************************************************/
