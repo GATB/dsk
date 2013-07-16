@@ -91,7 +91,7 @@ public:
     virtual ~DSKAlgorithm ();
 
     /** Compute several values, in particular the number of passes and partitions. */
-    void configure ();
+    void configure (bank::IBank* bank);
 
     /** Fill partition files (for a given pass) from a sequence iterator.
      * \param[in] pass  : current pass whose value is used for choosing the partition file
@@ -138,8 +138,6 @@ public:
     size_t getNks ()  { return _nks; }
 
 private:
-
-    bank::IBank* _bankBinary;
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;

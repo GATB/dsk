@@ -80,7 +80,7 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 template<typename T>
 DSKAlgorithm<T>::DSKAlgorithm (Tool* dsk)  :
     ToolProxy (dsk),
-    _bankBinary(0), _kmerSize(0), _nks(0), _partitionType(0), _nbCores(0),
+    _kmerSize(0), _nks(0), _partitionType(0), _nbCores(0),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -99,9 +99,6 @@ DSKAlgorithm<T>::DSKAlgorithm (Tool* dsk)  :
 template<typename T>
 DSKAlgorithm<T>::~DSKAlgorithm ()
 {
-    /** We release the bank handle. */
-    if (_bankBinary)  {  delete _bankBinary;  }
-
     /** We remove physically the partition files. */
     for (size_t i=0; i<_nb_partitions; i++)
     {
@@ -143,14 +140,15 @@ void DSKAlgorithm<T>::execute ()
     getInput()->setStr (DSK::STR_URI_SOLID_KMERS, dsk->getUriByKey (DSK::STR_URI_SOLID_KMERS) );
 
     /** We create the binary bank holding the reads in binary format. */
-    _bankBinary = new BankBinary (getInput()->getStr (DSK::STR_URI_DATABASE));
+    IBank* bank = new BankBinary (getInput()->getStr (DSK::STR_URI_DATABASE));
+    LOCAL (bank);
 
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
-    configure ();
+    configure (bank);
 
     /** We create the sequences iterator. */
-    Iterator<Sequence>* itSeq = _bankBinary->iterator();
+    Iterator<Sequence>* itSeq = bank->iterator();
     LOCAL (itSeq);
 
     /** We create the solid kmers bag. */
@@ -197,12 +195,12 @@ void DSKAlgorithm<T>::execute ()
 ** REMARKS :
 *********************************************************************/
 template<typename T>
-void DSKAlgorithm<T>::configure ()
+void DSKAlgorithm<T>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
     /** We get some information about the bank. */
-    _bankBinary->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
+    bank->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
 
     // We get the available space (in MBytes) of the current directory.
     u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
@@ -280,7 +278,7 @@ public:
         }
 
         /** We build the kmers from the current sequence. */
-        model.build (*data, kmers);
+        if (model.build (*data, kmers) == false)  { return; }
 
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
