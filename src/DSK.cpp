@@ -109,6 +109,9 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
     if (_histogram)  {  delete _histogram; }
 }
 
+struct FilterFunctor  {  bool operator ()  (Sequence& s)   {  return 1;/*   s.getIndex()%2 == 0;*/ } };
+
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -151,6 +154,10 @@ void DSKAlgorithm<T>::execute ()
     Iterator<Sequence>* itSeq = bank->iterator();
     LOCAL (itSeq);
 
+    FilterFunctor filter;
+
+    FilterIterator<Sequence,FilterFunctor> itF (itSeq, filter);
+
     /** We create the solid kmers bag. */
     Bag<T>* solidKmers = createSolidKmersBag ();
     LOCAL (solidKmers);
@@ -163,6 +170,7 @@ void DSKAlgorithm<T>::execute ()
     for (_current_pass=0; _current_pass<_nb_passes; _current_pass++)
     {
         /** 1) We fill the partition files. */
+        //fillPartitions (_current_pass, &itF);
         fillPartitions (_current_pass, itSeq);
 
         /** 2) We fill the kmers solid file from the partition files. */
@@ -253,6 +261,7 @@ void DSKAlgorithm<T>::configure (IBank* bank)
 }
 
 /********************************************************************************/
+
 template<typename T>
 class FillPartitions : public IteratorFunctor
 {
@@ -426,7 +435,7 @@ public:
             pair<T,u_int32_t>& p = itKmerAbundance->item();
 
             /** We may add this kmer to the solid kmers bag. */
-            add (p.first, p.second);
+            this->add (p.first, p.second);
         }
     }
 
@@ -482,7 +491,7 @@ public:
             if (*itKmers == previous_kmer)  {   abundance++;  }
             else
             {
-                add (previous_kmer, abundance);
+                this->add (previous_kmer, abundance);
 
                 abundance     = 1;
                 previous_kmer = *itKmers;
@@ -561,6 +570,8 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         }
 
         getDispatcher()->dispatchCommands (cmds, 0);
+        
+
     }
 
     /** Some cleanup. */
