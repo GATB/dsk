@@ -18,10 +18,10 @@ add_subdirectory (../../thirdparty/gatb-core/gatb-core  "${CMAKE_CURRENT_BINARY_
 add_definitions (${gatb-core-flags})
 
 # we give the source directories: from project source and from GATB-CORE source
-include_directories (src  ${gatb-core-includes} ../bank/src)
+include_directories (src  ${gatb-core-includes} )
 
 # we define the files to be compiled
-file (GLOB_RECURSE  ProjectFiles  src/*  ../bank/src/BankConverter.*)
+file (GLOB_RECURSE  ProjectFiles  src/*)
 
 # we define the artifact to be built: the project binary
 add_executable        (${CMAKE_PROJECT_NAME}  ${ProjectFiles})
