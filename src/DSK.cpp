@@ -35,7 +35,8 @@ using namespace std;
 template<size_t span>
 static void executeAlgorithm (DSK& dsk, IProperties* props)
 {
-    IBank* bank = new BankFasta (props->getStr(STR_URI_DB));
+    IBank* bank = BankRegistery::singleton().getFactory()->createBank(props->getStr(STR_URI_DB));
+    
     LOCAL (bank);
 
     size_t kmerSize = props->get(STR_KMER_SIZE)  ? props->getInt(STR_KMER_SIZE) : 31;
