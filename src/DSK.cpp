@@ -35,7 +35,7 @@ using namespace std;
 template<size_t span>
 static void executeAlgorithm (DSK& dsk, IProperties* props)
 {
-    IBank* bank = BankRegistery::singleton().getFactory()->createBank(props->getStr(STR_URI_DB));
+    IBank* bank = BankRegistery::singleton().getFactory()->createBank(props->getStr("-file"));
     
     LOCAL (bank);
 
@@ -110,7 +110,7 @@ DSK::DSK () : Tool ("dsk")
     getParser()->push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
     getParser()->push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
     getParser()->push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       true            ));
-    getParser()->push_front (new OptionOneParam (STR_URI_DB,          "databank uri",                         true));
+    getParser()->push_front (new OptionOneParam ("-file",             "file containing reads (e.g. FASTA/FASTQ)",true));
 }
 
 /*********************************************************************
