@@ -53,7 +53,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /************************************************************/
     /*                       Storage creation                   */
     /************************************************************/
-    Storage* product = StorageFactory(storageMode).createStorage (output, true, false);
+    Storage* product = StorageFactory(storageMode).create (output, true, false);
     LOCAL (product);
 
     /************************************************************/
