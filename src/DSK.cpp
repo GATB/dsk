@@ -74,7 +74,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         converter.getResult(),
         kmerSize,
         nks,
-        props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
+        props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
         props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
         props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
     );
