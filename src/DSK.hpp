@@ -42,6 +42,11 @@ public:
     /** Constructor. */
     DSK ();
 
+    /** Get a parser object that knows the user options for DSK.
+     * \return the options parser object.
+     */
+    static OptionsParser getOptionsParser (bool includeMandatory=true);
+
 private:
 
     /** \copydoc Tool::execute. */

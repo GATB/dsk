@@ -99,18 +99,11 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
 *********************************************************************/
 DSK::DSK () : Tool ("dsk")
 {
+    /** We get an OptionsParser for DSK. */
+    OptionsParser parser = getOptionsParser();
+
     /** We add options specific to DSK (most important at the end). */
-    getParser()->push_front (new OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
-    getParser()->push_front (new OptionOneParam (STR_OUTPUT_FORMAT,   "output format (0 binary, 1 HDF5)",     false,  "0"));
-    getParser()->push_front (new OptionOneParam (STR_PREFIX,          "prefix for output files",              false, "tmp."));
-    getParser()->push_front (new OptionOneParam (STR_PARTITION_TYPE,  "partitioning type : 0 for map (default), 1 for vector", false, "0"));
-    getParser()->push_front (new OptionOneParam (STR_URI_HISTOGRAM,   "outputs histogram of kmers abundance", false));
-    getParser()->push_front (new OptionOneParam (STR_KMER_SOLID,      "solid kmers file",                     false,  "solid" ));
-    getParser()->push_front (new OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
-    getParser()->push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
-    getParser()->push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
-    getParser()->push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       true            ));
-    getParser()->push_front (new OptionOneParam ("-file",             "file containing reads (e.g. FASTA/FASTQ)",true));
+    getParser()->add (parser);
 }
 
 /*********************************************************************
@@ -132,4 +125,32 @@ void DSK::execute ()
     else if (kmerSize < 96)   { executeAlgorithm <96>  (*this, getInput());  }
     else if (kmerSize < 128)  { executeAlgorithm <128> (*this, getInput());  }
     else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+OptionsParser DSK::getOptionsParser (bool includeMandatory)
+{
+    OptionsParser parser ("DSK");
+
+    /** We add options specific to DSK (most important at the end). */
+    parser.push_front (new OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
+    parser.push_front (new OptionOneParam (STR_OUTPUT_FORMAT,   "output format (0 binary, 1 HDF5)",     false,  "0"));
+    parser.push_front (new OptionOneParam (STR_PREFIX,          "prefix for output files",              false, "tmp."));
+    parser.push_front (new OptionOneParam (STR_PARTITION_TYPE,  "partitioning type : 0 for map (default), 1 for vector", false, "0"));
+    parser.push_front (new OptionOneParam (STR_URI_HISTOGRAM,   "outputs histogram of kmers abundance", false));
+    parser.push_front (new OptionOneParam (STR_KMER_SOLID,      "solid kmers file",                     false,  "solid" ));
+    parser.push_front (new OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
+    parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
+    parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
+    parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       true            ));
+    parser.push_front (new OptionOneParam (STR_URI_FILE,        "file containing reads (e.g. FASTA/FASTQ)",true));
+
+    return parser;
 }
