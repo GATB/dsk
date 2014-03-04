@@ -3,15 +3,22 @@ project(dsk)
 cmake_minimum_required (VERSION 2.6)
 
 ################################################################################
-# GATB-CORE
+# Define cmake modules directory
+################################################################################
+LIST (APPEND CMAKE_PATH_LOOKUP "cmake;../../cmake")
+
+FOREACH (path ${CMAKE_PATH_LOOKUP})
+    IF (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${path}")
+        SET (CMAKE_MODULE_PATH  "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/${path}")
+    ENDIF()
+ENDFOREACH(path)
+
+################################################################################
+# THIRD PARTIES
 ################################################################################
 
-# we don't want to install GATB-CORE items
-SET (GATB_CORE_INSTALL_EXCLUDE "1")
-
-# we depend on gatb-core; here, we define where to find all the required material
-add_subdirectory (../../thirdparty/gatb-core/gatb-core  "${CMAKE_CURRENT_BINARY_DIR}/ext/gatb-core")
-
+# GATB CORE
+include (GatbCore)
 
 ################################################################################
 # TOOL
@@ -33,6 +40,18 @@ add_executable        (${PROJECT_NAME}  ${ProjectFiles})
 target_link_libraries (${PROJECT_NAME}  ${gatb-core-libraries})
 
 ################################################################################
-#  INSTALLATION 
+#  PACKAGING 
 ################################################################################
-install (TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+# We chose the kind of archive we want to generate
+SET (CPACK_GENERATOR            "TGZ")
+SET (CPACK_SOURCE_GENERATOR     "TGZ")
+
+# We copy the project binary to the 'bin' directory
+INSTALL (TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+# For the source archive, we exclude some unwanted directories.
+SET (CPACK_SOURCE_IGNORE_FILES  ${CPACK_SOURCE_IGNORE_FILES} "/build/" ".gitignore$")
+
+# To be done at the end. 
+INCLUDE (CPack)
