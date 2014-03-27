@@ -142,7 +142,7 @@ OptionsParser DSK::getOptionsParser (bool includeMandatory)
 
     /** We add options specific to DSK (most important at the end). */
     parser.push_front (new OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
-    parser.push_front (new OptionOneParam (STR_OUTPUT_FORMAT,   "output format (0 binary, 1 HDF5)",     false,  "0"));
+    parser.push_front (new OptionOneParam (STR_OUTPUT_FORMAT,   "output format (0 binary, 1 HDF5)",     false,  "1"));
     parser.push_front (new OptionOneParam (STR_PREFIX,          "prefix for output files",              false, "tmp."));
     parser.push_front (new OptionOneParam (STR_PARTITION_TYPE,  "partitioning type : 0 for map (default), 1 for vector", false, "0"));
     parser.push_front (new OptionOneParam (STR_URI_HISTOGRAM,   "outputs histogram of kmers abundance", false));
