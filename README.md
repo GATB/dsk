@@ -31,9 +31,9 @@ You can get content of a dataset (description + data) with:
     h5dump -y -d dsk/solid      output.h5
     h5dump -y -d dsk/histogram  output.h5
 
-To see the results as a list of "[kmer], [count]\n", type 
+To see the results as a list of "[kmer] [count]\n", use the `dsk2ascii` binary with the output file from dsk 
 
-    h5dump -y -d dsk/solid output.h5  | grep "^\ *[0-9]" | tr -d " " | paste - -
+    dsk2ascii -file output.h5 -out output.txt
     
 To plot kmer coverage distribution,    
     
