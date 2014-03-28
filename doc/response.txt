@@ -1,0 +1,35 @@
+Dear reviewers,
+
+Thank you very much for your comments and suggestions regarding our manuscript. Please find below an overview of the modifications made in response to the reviews.
+
+
+Reviewer: 1
+
+1)
+Indeed, if D is limited (i.e. bounded by a constant), the algorithm becomes quadratic. However, as long as D=O(v) (not necessarily D=v, but (v/10) works too), the algorithm remains linear-time. Furthermore, the special case (n_i = 1) is important but not the single useful one: in our experience with human genome k-mer counting, we typically end up with n_i in 3..10 (depending on available disk space) and the algorithm remains practical.
+
+As the paragraph discussing this aspect was perhaps unclear, we changed the D=omega(v) notation to D=Theta(v) as the latter is more widely known. Setting D much larger than v has no benefit. Also, we changed the sentence "setting D equal to the reads file size" to "setting D equal to the sum of input bases" as the reviewer pointed that it was unclear.
+
+2)
+We agree the lack of random access to kmer counts make dsk different to jellyfish and BFcounter, and should be noted in the manuscript. We added a sentence about that in the Discussion.
+
+Reviewer: 2
+
+1)
+This is a very relevant remark. Due to lack of space, we could not cite in this article some methods (mostly assembly) that benefit from efficient k-mer counting. However, we added at the end of the abstract that DSK can replace a popular k-mer counting software (Jellyfish) on small-memory servers. As a direct response to the reviewer question, DSK is used in the low-memory assembly method Minia (http://minia.genouest.org).
+
+2)
+We added in the Introduction that BFCounter is a kmer-counting method based on a Bloom filter.
+
+3,4)
+Thank you, we corrected these typos as suggested.
+
+
+Reviewer: 3
+
+
+1,2,3)
+Thank you, we made all the suggested corrections.
+
+4)
+We corrected the compilation warnings. The software now compiles on Mac OS X 10.8.2 by passing a parameter to the makefile 'make osx=1'.

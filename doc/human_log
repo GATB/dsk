@@ -1,0 +1,30 @@
+[rchikhi@cl1n020 ~/tmp]$ time sh dsk.sh
+Opening file "HG_reads_all_untrimed.fa", size of first sequence: 100 nt
+Total RAM: 144964 MB
+Sequentially counting ~826719 MB of kmers with 86 partition(s) using 1 thread(s), ~4000 MB of memory and ~120000 MB of disk space
+Pass 1/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 1/7, loaded and sorted partition 86/86, found 387553588 solid kmers so far
+Pass 2/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 2/7, loaded and sorted partition 86/86, found 775106970 solid kmers so far
+Pass 3/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 3/7, loaded and sorted partition 86/86, found 1162652040 solid kmers so far
+Pass 4/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 4/7, loaded and sorted partition 86/86, found 1550190292 solid kmers so far
+Pass 5/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 5/7, loaded and sorted partition 86/86, found 1937707469 solid kmers so far
+Pass 6/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 6/7, loaded and sorted partition 86/86, found 2325272516 solid kmers so far
+Pass 7/7, loop through reads to separate (redundant) kmers into partitions, processed 1409M reads out of 1464M
+Pass 7/7, loaded and sorted partition 86/86, found 2712827796 solid kmers so far
+
+Saved 2712827796 solid kmers
+-------------------Counted kmers time Wallclock  64651.1 s
+
+------------------ Counted kmers and kept those with abundance >=3,
+-------------------Total time Wallclock  64651.5 s
+
+real    1077m31.532s
+user    832m43.199s
+sys     62m53.525s
+49963.201u 3773.525s 17:57:31.58 83.1%  0+0k 0+0io 0pf+0w
+
