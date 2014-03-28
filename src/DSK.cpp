@@ -43,7 +43,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     size_t kmerSize = props->get(STR_KMER_SIZE)  ? props->getInt(STR_KMER_SIZE) : 31;
     size_t nks      = props->get(STR_NKS)        ? props->getInt(STR_NKS)       : 3;
 
-    StorageMode_e storageMode =  props->getInt(STR_OUTPUT_FORMAT) == 0 ?  STORAGE_FILE : STORAGE_HDF5;
+    StorageMode_e storageMode = DSK::getStorageMode();
 
     string output = props->get(STR_URI_OUTPUT) ?
         props->getStr(STR_URI_OUTPUT)   :
@@ -87,7 +87,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     System::file().remove (binaryBankUri);
 
     /** We set the output uri. */
-    dsk.getOutput()->add (0, STR_KMER_SOLID,  props->getStr(STR_PREFIX) + dsk.getInput()->getStr (STR_KMER_SOLID));
+    dsk.getOutput()->add (0, STR_KMER_SOLID,  output);
 }
 
 /*********************************************************************
@@ -104,7 +104,7 @@ DSK::DSK () : Tool ("dsk")
     OptionsParser parser = getOptionsParser();
 
     /** We add options specific to DSK (most important at the end). */
-    getParser()->add (parser);
+    getParser()->push_front (parser);
 }
 
 /*********************************************************************
@@ -141,17 +141,12 @@ OptionsParser DSK::getOptionsParser (bool includeMandatory)
     OptionsParser parser ("DSK");
 
     /** We add options specific to DSK (most important at the end). */
-    parser.push_front (new OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
-    parser.push_front (new OptionOneParam (STR_OUTPUT_FORMAT,   "output format (0 binary, 1 HDF5)",     false,  "1"));
-    parser.push_front (new OptionOneParam (STR_PREFIX,          "prefix for output files",              false, "tmp."));
-    parser.push_front (new OptionOneParam (STR_PARTITION_TYPE,  "partitioning type : 0 for map (default), 1 for vector", false, "0"));
-    parser.push_front (new OptionOneParam (STR_URI_HISTOGRAM,   "outputs histogram of kmers abundance", false));
-    parser.push_front (new OptionOneParam (STR_KMER_SOLID,      "solid kmers file",                     false,  "solid" ));
-    parser.push_front (new OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
-    parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
-    parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
-    parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       true            ));
     parser.push_front (new OptionOneParam (STR_URI_FILE,        "file containing reads (e.g. FASTA/FASTQ)",true));
+    parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       true            ));
+    parser.push_front (new OptionOneParam (STR_URI_OUTPUT,      "output file (if not set basename of the input file)", false));
+    parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
+    parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
+    parser.push_front (new OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
 
     return parser;
 }
