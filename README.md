@@ -1,5 +1,12 @@
 # DSK  short manual
 
+## Compilation
+
+If you retrieved a source archive, you can use cmake to compile the tool:
+
+    mkdir build; cd build; cmake ..; make 
+
+
 ## Usage
 
 * type `./dsk` for usage.
