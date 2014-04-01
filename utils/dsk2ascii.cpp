@@ -38,7 +38,7 @@ public:
         Kmer<>::Model model (props.getInt ("kmer_size"));
 
         // We create the output file
-        fstream output (getInput()->getStr(STR_URI_OUTPUT), std::fstream::out);
+        fstream output (getInput()->getStr(STR_URI_OUTPUT).c_str(), std::fstream::out);
 
         // We iterate (through a lambda expression) the solid kmers from the retrieved collection
         Iterator<Kmer<>::Count>* itKmers = createIterator (solidKmers.iterator(), solidKmers.getNbItems(), "parsing");
