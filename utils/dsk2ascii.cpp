@@ -44,10 +44,11 @@ public:
         Iterator<Kmer<>::Count>* itKmers = createIterator (solidKmers.iterator(), solidKmers.getNbItems(), "parsing");
         LOCAL(itKmers);
 
-        itKmers->iterate ([&] (const Kmer<>::Count& count)
+        for (itKmers->first(); !itKmers->isDone(); itKmers->next())
         {
+            const Kmer<>::Count& count = itKmers->item();
             output << model.toString(count.value) << " " << count.abundance << endl;
-        });
+        }
 
         output.close();
 
