@@ -121,10 +121,10 @@ void DSK::execute ()
     size_t kmerSize = getInput()->getInt (STR_KMER_SIZE);
 
     /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
-         if (kmerSize < 32)   { executeAlgorithm <32>  (*this, getInput());  }
-    else if (kmerSize < 64)   { executeAlgorithm <64>  (*this, getInput());  }
-    else if (kmerSize < 96)   { executeAlgorithm <96>  (*this, getInput());  }
-    else if (kmerSize < 128)  { executeAlgorithm <128> (*this, getInput());  }
+         if (kmerSize < KSIZE_1)  { executeAlgorithm <KSIZE_1>  (*this, getInput());  }
+    else if (kmerSize < KSIZE_2)  { executeAlgorithm <KSIZE_2>  (*this, getInput());  }
+    else if (kmerSize < KSIZE_3)  { executeAlgorithm <KSIZE_3>  (*this, getInput());  }
+    else if (kmerSize < KSIZE_4)  { executeAlgorithm <KSIZE_4> (*this, getInput());  }
     else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
 }
 
