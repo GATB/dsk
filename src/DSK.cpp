@@ -40,8 +40,8 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     
     LOCAL (bank);
 
-    size_t kmerSize = props->get(STR_KMER_SIZE)  ? props->getInt(STR_KMER_SIZE) : 31;
-    size_t nks      = props->get(STR_NKS)        ? props->getInt(STR_NKS)       : 3;
+    size_t kmerSize = props->get(STR_KMER_SIZE)      ? props->getInt(STR_KMER_SIZE)      : 31;
+    size_t nks      = props->get(STR_KMER_ABUNDANCE) ? props->getInt(STR_KMER_ABUNDANCE) : 3;
 
     StorageMode_e storageMode = DSK::getStorageMode();
 
@@ -146,7 +146,7 @@ OptionsParser DSK::getOptionsParser (bool includeMandatory)
     parser.push_front (new OptionOneParam (STR_URI_OUTPUT,      "output file (if not set basename of the input file)", false));
     parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
     parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
-    parser.push_front (new OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
+    parser.push_front (new OptionOneParam (STR_KMER_ABUNDANCE,  "abundance threshold for solid kmers",  false,  "3"     ));
 
     return parser;
 }
