@@ -26,11 +26,14 @@ then
     Debug="Debug"
     debug="_debug"
     debugflag="-g"
+    opt="-O0"
+else
+    opt="-O3"
 fi
 
 options="$debugflag -I ../../../thirdparty/gatb-core/gatb-core/src/ -I ../src/ \
 -I ./ext/gatb-core/include/  \
--O3  -DINT128_FOUND  -DWITH_LAMBDA_EXPRESSION  -std=c++0x -Wno-invalid-offsetof "
+$opt -DINT128_FOUND  -DWITH_LAMBDA_EXPRESSION  -std=c++0x -Wno-invalid-offsetof "
 
 sources="../src/DSK.cpp ../src/main.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/tools/misc/impl/Tool.cpp \
