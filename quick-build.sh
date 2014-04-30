@@ -30,7 +30,7 @@ fi
 
 options="$debugflag -I ../../../thirdparty/gatb-core/gatb-core/src/ -I ../src/ \
 -I ./ext/gatb-core/include/  \
--O3  -DINT128_FOUND  -DWITH_LAMBDA_EXPRESSION  -std=c++0x -Wno-invalid-offsetof"
+-O3  -DINT128_FOUND  -DWITH_LAMBDA_EXPRESSION  -std=c++0x -Wno-invalid-offsetof "
 
 sources="../src/DSK.cpp ../src/main.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/tools/misc/impl/Tool.cpp \
@@ -40,6 +40,10 @@ sources="../src/DSK.cpp ../src/main.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/bank/impl/BankRegistery.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/PartitionsCommand.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/SortingCountAlgorithm.cpp \
+../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/SortingCountAlgorithmTemplates1.cpp \
+../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/SortingCountAlgorithmTemplates2.cpp \
+../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/SortingCountAlgorithmTemplates3.cpp \
+../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/SortingCountAlgorithmTemplates4.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/kmer/impl/Model.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/system/impl/FileSystemCommon.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/system/impl/FileSystemLinux.cpp \
@@ -60,12 +64,15 @@ sources="../src/DSK.cpp ../src/main.cpp \
 ../../../thirdparty/gatb-core/gatb-core/src/gatb/tools/misc/impl/XmlReader.cpp 
 "
 
+compiler=/usr/local/bin/g++
+#compiler=clang++
+
 compile_file(){
     file=$1
     obj=$2
     # so that time command only returns wallclock time on seconds, see http://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html
     TIMEFORMAT=%R 
-    time=$( { time ccache /usr/local/bin/g++ -c $options $file -o $obj; } 2>&1 )
+    time=$( { time ccache $compiler -c $options $file -o $obj; } 2>&1 )
     if [[ $time > 1 ]]
     then
         echo "compiling $file took $time secs"
@@ -83,4 +90,4 @@ done
 
 wait
 
-ccache  /usr/local/bin/g++ $debugflag -o  dsk -rdynamic  -ldl -lpthread -lz -lm $objs ext/gatb-core/lib/$Debug/libhdf5$debug.a
+ccache  $compiler $debugflag -o  dsk -rdynamic  -ldl -lpthread -lz -lm $objs ext/gatb-core/lib/$Debug/libhdf5$debug.a
