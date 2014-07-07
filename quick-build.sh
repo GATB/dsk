@@ -28,7 +28,15 @@ then
     debugflag="-g"
     opt="-O0"
 else
-    opt="-O3"
+    if [[ "$1" == "-prof" ]]
+    then
+        Debug="Debug"
+        debug="_debug"
+        debugflag="-pg"
+        opt="-O0"
+    else
+        opt="-O3"
+    fi
 fi
 
 options="$debugflag -I ../../../thirdparty/gatb-core/gatb-core/src/ -I ../src/ \
