@@ -142,7 +142,7 @@ OptionsParser DSK::getOptionsParser (bool includeMandatory)
 
     /** We add options specific to DSK (most important at the end). */
     parser.push_front (new OptionOneParam (STR_URI_FILE,        "file containing reads (e.g. FASTA/FASTQ)",true));
-    parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       true            ));
+    parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       false, "31"            ));
     parser.push_front (new OptionOneParam (STR_URI_OUTPUT,      "output file (if not set basename of the input file)", false));
     parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
     parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
