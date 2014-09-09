@@ -35,7 +35,7 @@ public:
 
         // We create a Model instance. It will help to dump the kmers in
         // a human readable form (ie as a string of nucleotides)
-        Kmer<>::Model model (props.getInt ("kmer_size"));
+        Kmer<>::ModelCanonical model (props.getInt ("kmer_size"));
 
         // We create the output file
         fstream output (getInput()->getStr(STR_URI_OUTPUT).c_str(), std::fstream::out);
