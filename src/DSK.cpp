@@ -61,10 +61,10 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /*                         Bank conversion                  */
     /************************************************************/
     /** We create the binary bank. */
-    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
-    converter.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
-    converter.execute();
-    dsk.getInfo()->add (1, converter.getInfo());
+//    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
+//    converter.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
+//    converter.execute();
+//    dsk.getInfo()->add (1, converter.getInfo());
 
     /************************************************************/
     /*                         Sorting count                    */
@@ -72,7 +72,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /** We create a DSK instance and execute it. */
     SortingCountAlgorithm<span> sortingCount (
         product,
-        converter.getResult(),
+        bank, //converter.getResult(),
         kmerSize,
         nks,
         props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
