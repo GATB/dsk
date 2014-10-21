@@ -61,10 +61,10 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /*                         Bank conversion                  */
     /************************************************************/
     /** We create the binary bank. */
-    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
-    converter.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
-    converter.execute();
-    dsk.getInfo()->add (1, converter.getInfo());
+//    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
+//    converter.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
+//    converter.execute();
+//    dsk.getInfo()->add (1, converter.getInfo());
 
     /************************************************************/
     /*                         Sorting count                    */
@@ -76,7 +76,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /** We create a DSK instance and execute it. */
     SortingCountAlgorithm<span> sortingCount (
         product,
-        converter.getResult(),
+        bank, //converter.getResult(),
         kmerSize,
         nks,
         props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
@@ -149,7 +149,7 @@ OptionsParser DSK::getOptionsParser (bool includeMandatory)
     parser.push_front (new OptionOneParam (STR_URI_FILE,        "file containing reads (e.g. FASTA/FASTQ)",true));
     parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       false, "31"            ));
     parser.push_front (new OptionOneParam (STR_URI_OUTPUT,      "output file (if not set basename of the input file)", false));
-    parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "1000"  ));
+    parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "2000"  ));
     parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
     parser.push_front (new OptionOneParam (STR_KMER_ABUNDANCE,  "abundance threshold for solid kmers",  false,  "3"     ));
 
