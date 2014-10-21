@@ -69,6 +69,10 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /************************************************************/
     /*                         Sorting count                    */
     /************************************************************/
+
+    int use_hashing_instead_of_sorting = 0; // 0 = sorting (default)
+                                            // 1 = hashing (experimental)
+
     /** We create a DSK instance and execute it. */
     SortingCountAlgorithm<span> sortingCount (
         product,
@@ -77,7 +81,8 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         nks,
         props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
         props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
-        props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+        props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
+        use_hashing_instead_of_sorting
     );
     sortingCount.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
     sortingCount.execute();
