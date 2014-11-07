@@ -30,12 +30,9 @@ public:
         // We get the solid kmers collection 1) from the 'dsk' group  2) from the 'solid' collection
         Collection<Kmer<>::Count>& solidKmers = storage->getGroup("dsk").getCollection<Kmer<>::Count> ("solid");
 
-        // We can access each of these information through a Properties object
-        Properties props;   props.readXML (solidKmers.getProperty("properties"));
-
         // We create a Model instance. It will help to dump the kmers in
         // a human readable form (ie as a string of nucleotides)
-        Kmer<>::ModelCanonical model (props.getInt ("kmer_size"));
+        Kmer<>::ModelCanonical model (atol (storage->getGroup("dsk").getProperty ("kmer_size").c_str()));
 
         // We create the output file
         fstream output (getInput()->getStr(STR_URI_OUTPUT).c_str(), std::fstream::out);
