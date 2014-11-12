@@ -36,7 +36,7 @@ using namespace std;
 template<size_t span>
 static void executeAlgorithm (DSK& dsk, IProperties* props)
 {
-    IBank* bank = BankRegistery::singleton().createBank(props->getStr("-file"));
+    IBank* bank = Bank::singleton().createBank(props->getStr("-file"));
     
     LOCAL (bank);
 
