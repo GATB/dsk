@@ -78,10 +78,12 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         product,
         bank, //converter.getResult(),
         kmerSize,
-        nks,
+        make_pair(nks,~0),
         props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
         props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
         props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
+        gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT,
+        10000, // histogramMax
         use_hashing_instead_of_sorting
     );
     sortingCount.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
