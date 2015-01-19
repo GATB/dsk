@@ -107,11 +107,11 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
 *********************************************************************/
 DSK::DSK () : Tool ("dsk")
 {
-    /** We get an OptionsParser for DSK. */
-    OptionsParser parser = getOptionsParser();
-
     /** We add options specific to DSK (most important at the end). */
-    getParser()->push_front (parser);
+    getParser()->push_back (SortingCountAlgorithm<>::getOptionsParser(), 1);
+
+    /** We rename the input option. */
+    if (IOptionsParser* input = getParser()->getParser (STR_URI_INPUT))  {  input->setName (STR_URI_FILE);  }
 }
 
 /*********************************************************************
@@ -133,27 +133,4 @@ void DSK::execute ()
     else if (kmerSize < KSIZE_3)  { executeAlgorithm <KSIZE_3>  (*this, getInput());  }
     else if (kmerSize < KSIZE_4)  { executeAlgorithm <KSIZE_4> (*this, getInput());  }
     else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-OptionsParser DSK::getOptionsParser (bool includeMandatory)
-{
-    OptionsParser parser ("DSK");
-
-    /** We add options specific to DSK (most important at the end). */
-    parser.push_front (new OptionOneParam (STR_URI_FILE,        "file containing reads (e.g. FASTA/FASTQ)",true));
-    parser.push_front (new OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       false, "31"            ));
-    parser.push_front (new OptionOneParam (STR_URI_OUTPUT,      "output file (if not set basename of the input file)", false));
-    parser.push_front (new OptionOneParam (STR_MAX_MEMORY,      "max memory in MBytes",                 false,  "2000"  ));
-    parser.push_front (new OptionOneParam (STR_MAX_DISK,        "max disk space in MBytes",             false,  "0"     ));
-    parser.push_front (new OptionOneParam (STR_KMER_ABUNDANCE,  "abundance threshold for solid kmers",  false,  "3"     ));
-
-    return parser;
 }

@@ -43,11 +43,6 @@ public:
     /** Constructor. */
     DSK ();
 
-    /** Get a parser object that knows the user options for DSK.
-     * \return the options parser object.
-     */
-    static OptionsParser getOptionsParser (bool includeMandatory=true);
-
     /** Get the default Storage mode.
      * \return the storage mode (likely HDF5).  */
     static StorageMode_e getStorageMode() { return STORAGE_HDF5; }
