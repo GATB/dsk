@@ -40,8 +40,8 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     
     LOCAL (bank);
 
-    size_t kmerSize = props->get(STR_KMER_SIZE)      ? props->getInt(STR_KMER_SIZE)      : 31;
-    size_t nks      = props->get(STR_KMER_ABUNDANCE) ? props->getInt(STR_KMER_ABUNDANCE) : 3;
+    size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)          : 31;
+    size_t nks      = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN) : 3;
 
     StorageMode_e storageMode = DSK::getStorageMode();
 
@@ -49,22 +49,11 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         props->getStr(STR_URI_OUTPUT)   :
         System::file().getBaseName (bank->getId());
 
-    string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
-
     /************************************************************/
     /*                       Storage creation                   */
     /************************************************************/
     Storage* product = StorageFactory(storageMode).create (output, true, false);
     LOCAL (product);
-
-    /************************************************************/
-    /*                         Bank conversion                  */
-    /************************************************************/
-    /** We create the binary bank. */
-//    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
-//    converter.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
-//    converter.execute();
-//    dsk.getInfo()->add (1, converter.getInfo());
 
     /************************************************************/
     /*                         Sorting count                    */
@@ -83,15 +72,12 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
         props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
         gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT,
-        10000, // histogramMax
+        props->getInt(STR_HISTOGRAM_MAX),
         use_hashing_instead_of_sorting
     );
     sortingCount.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
     sortingCount.execute();
     dsk.getInfo()->add (1, sortingCount.getInfo());
-
-    /** We can get rid of the binary bank. */
-    System::file().remove (binaryBankUri);
 
     /** We set the output uri. */
     dsk.getOutput()->add (0, STR_KMER_SOLID,  output);
