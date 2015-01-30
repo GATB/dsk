@@ -60,7 +60,7 @@ rm -f test_long.*
 
 ################################################################################
 echo -n "Testing k = readlen ..........."
-bin/dsk -file test/shortread.fasta  -kmer-size 15  -nks 1  -out test_short  -verbose 0
+bin/dsk -file test/shortread.fasta  -kmer-size 15  -abundance-min 1  -out test_short  -verbose 0
 bin/dsk2ascii -file test_short -out test_short.parse_results  -verbose 0
 
 diff test_short.parse_results  test/short.parse_results > /dev/null
