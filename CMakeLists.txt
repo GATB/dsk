@@ -48,9 +48,9 @@ target_link_libraries (${PROJECT_NAME}  ${gatb-core-libraries})
 #  DOC 
 ################################################################################
 
-if (NOT DEFINED SKIP_DOC)
-    add_subdirectory (doc)
-endif()
+#if (NOT DEFINED SKIP_DOC)
+#    add_subdirectory (doc)
+#endif()
 
 ################################################################################
 #  UTILS 
