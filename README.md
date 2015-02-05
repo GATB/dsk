@@ -19,6 +19,11 @@ File input can be fasta, fastq, gzipped or not.
 To pass several files as input : pass a list of file names (separator is ,) ex:  
 
     ./dsk  -file A1.fa,A2.fa,A3.fa  -kmer-size 31
+
+Alternatively, it takes a list of files (one file per line) as input: 
+
+    ls -1 *.fastq > list_reads
+    ./dsk -file list_reads
     
 
 ## Results visualisation
@@ -46,4 +51,11 @@ To plot kmer coverage distribution,
     
     h5dump -y -d dsk/histogram  output.h5  | grep "^\ *[0-9]" | tr -d " " | paste - - | gnuplot -p -e 'plot  "-" with lines'     
 
-    
+
+## Larger k-mer sizes
+
+DSK supports arbitrary large k-mer lengths. 
+Just compile from the source, to support k-mer lengths up to, say, 160, type this in the build folder:
+
+    rm -Rf CMake* && cmake -Dk4=160 .. && make
+
