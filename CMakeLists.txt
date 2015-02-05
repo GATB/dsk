@@ -77,7 +77,7 @@ SET (CPACK_SOURCE_GENERATOR     "TGZ")
 INSTALL (TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 # For the source archive, we exclude some unwanted directories.
-SET (CPACK_SOURCE_IGNORE_FILES  ${CPACK_SOURCE_IGNORE_FILES} "/build/" ".gitignore$")
+SET (CPACK_SOURCE_IGNORE_FILES  ${CPACK_SOURCE_IGNORE_FILES} "/build/" ".gitignore$" "quick-build.sh")
 
 # To be done at the end. 
 INCLUDE (Delivery)
