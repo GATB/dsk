@@ -44,6 +44,14 @@ add_executable        (${PROJECT_NAME}  ${ProjectFiles})
 # we define which libraries to be linked with project binary
 target_link_libraries (${PROJECT_NAME}  ${gatb-core-libraries})
 
+
+# attempt at static linking, not sure if it works properly
+set_target_properties(dsk PROPERTIES LINK_SEARCH_START_STATIC 1)
+set_target_properties(dsk PROPERTIES LINK_SEARCH_END_STATIC 1)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++ -static")
+
+
 ################################################################################
 #  DOC 
 ################################################################################
