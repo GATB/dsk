@@ -43,6 +43,10 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)          : 31;
     size_t nks      = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN) : 3;
 
+    size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
+    size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
+
+
     StorageMode_e storageMode = DSK::getStorageMode();
 
     string output = props->get(STR_URI_OUTPUT) ?
@@ -73,7 +77,9 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
         gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT,
         props->getInt(STR_HISTOGRAM_MAX),
-        use_hashing_instead_of_sorting
+        use_hashing_instead_of_sorting,
+        minimizerType,
+        minimizerSize
     );
     sortingCount.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
     sortingCount.execute();
