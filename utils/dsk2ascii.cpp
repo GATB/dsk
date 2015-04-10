@@ -27,23 +27,42 @@ public:
         Storage* storage = StorageFactory(DSK::getStorageMode()).load (getInput()->getStr(STR_URI_FILE));
         LOCAL (storage);
 
+        string kmerSizeStr = storage->getGroup("dsk").getProperty ("kmer_size");
+
+        if (kmerSizeStr.empty())  { throw Exception ("unable to get the kmer size"); }
+
+        size_t kmerSize = atoi (kmerSizeStr.c_str());
+
+        /** Here is the link between the kmer size (or precision) and the specific type to be used for the variant. */
+             if (kmerSize < KSIZE_1)  {  execute<KSIZE_1> (storage, kmerSize); }
+        else if (kmerSize < KSIZE_2)  {  execute<KSIZE_2> (storage, kmerSize); }
+        else if (kmerSize < KSIZE_3)  {  execute<KSIZE_3> (storage, kmerSize); }
+        else if (kmerSize < KSIZE_4)  {  execute<KSIZE_4> (storage, kmerSize); }
+        else { throw Exception ("Failure because of unhandled kmer size %d", kmerSize); }
+    }
+
+    template<size_t span>
+    void execute (Storage* storage, size_t kmerSize)
+    {
+        typedef typename Kmer<span>::Count Count;
+
         // We get the solid kmers collection 1) from the 'dsk' group  2) from the 'solid' collection
-        Partition<Kmer<>::Count>& solidKmers = storage->getGroup("dsk").getPartition<Kmer<>::Count> ("solid");
+        Partition<Count>& solidKmers = storage->getGroup("dsk").getPartition<Count> ("solid");
 
         // We create a Model instance. It will help to dump the kmers in
         // a human readable form (ie as a string of nucleotides)
-        Kmer<>::ModelCanonical model (atol (storage->getGroup("dsk").getProperty ("kmer_size").c_str()));
+        typename Kmer<span>::ModelCanonical model (atol (storage->getGroup("dsk").getProperty ("kmer_size").c_str()));
 
         // We create the output file
         fstream output (getInput()->getStr(STR_URI_OUTPUT).c_str(), std::fstream::out);
 
         // We iterate (through a lambda expression) the solid kmers from the retrieved collection
-        Iterator<Kmer<>::Count>* itKmers = createIterator (solidKmers.iterator(), solidKmers.getNbItems(), "parsing");
+        Iterator<Count>* itKmers = createIterator (solidKmers.iterator(), solidKmers.getNbItems(), "parsing");
         LOCAL(itKmers);
 
         for (itKmers->first(); !itKmers->isDone(); itKmers->next())
         {
-            const Kmer<>::Count& count = itKmers->item();
+            const Count& count = itKmers->item();
             output << model.toString(count.value) << " " << count.abundance << endl;
         }
 
@@ -51,7 +70,8 @@ public:
 
         /** We gather some statistics. */
         getInfo()->add (1, "stats");
-        getInfo()->add (2, "nb_kmers", "%ld", solidKmers.getNbItems());
+        getInfo()->add (2, "kmer_size", "%ld", kmerSize);
+        getInfo()->add (2, "nb_kmers",  "%ld", solidKmers.getNbItems());
     }
 };
 
