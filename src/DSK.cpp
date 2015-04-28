@@ -40,8 +40,10 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     
     LOCAL (bank);
 
-    size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)          : 31;
-    size_t nks      = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN) : 3;
+    size_t kmerSize = props->getInt (STR_KMER_SIZE);
+
+    size_t abundanceMin = props->getInt (STR_KMER_ABUNDANCE_MIN);
+    size_t abundanceMax = props->getInt (STR_KMER_ABUNDANCE_MAX);
 
     size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
     size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
@@ -71,7 +73,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
         product,
         bank, //converter.getResult(),
         kmerSize,
-        make_pair(nks,~0),
+        make_pair(abundanceMin,abundanceMax),
         props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
         props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
         props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
@@ -123,6 +125,6 @@ void DSK::execute ()
          if (kmerSize < KSIZE_1)  { executeAlgorithm <KSIZE_1>  (*this, getInput());  }
     else if (kmerSize < KSIZE_2)  { executeAlgorithm <KSIZE_2>  (*this, getInput());  }
     else if (kmerSize < KSIZE_3)  { executeAlgorithm <KSIZE_3>  (*this, getInput());  }
-    else if (kmerSize < KSIZE_4)  { executeAlgorithm <KSIZE_4> (*this, getInput());  }
+    else if (kmerSize < KSIZE_4)  { executeAlgorithm <KSIZE_4>  (*this, getInput());  }
     else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
 }
