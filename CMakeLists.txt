@@ -78,9 +78,9 @@ add_subdirectory (utils)
 #  INSTALLATION 
 ################################################################################
 
-INSTALL (FILES     ${CMAKE_CURRENT_SOURCE_DIR}/README.md        DESTINATION .)
-INSTALL (FILES     ${CMAKE_CURRENT_SOURCE_DIR}/simple_test.sh   DESTINATION .)
-INSTALL (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test             DESTINATION .)
+INSTALL (FILES     ${CMAKE_CURRENT_SOURCE_DIR}/README.md        DESTINATION ./share/dsk)
+INSTALL (FILES     ${CMAKE_CURRENT_SOURCE_DIR}/simple_test.sh   DESTINATION ./share/dsk)
+INSTALL (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test             DESTINATION ./share/dsk)
 
 ################################################################################
 #  PACKAGING 
