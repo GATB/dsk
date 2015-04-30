@@ -14,13 +14,13 @@ If you retrieved a source archive, you can use cmake to compile the tool:
 
 ## Input
 
-File input can be fasta, fastq, gzipped or not.
+File input format can be fasta, fastq, either gzipped or not.
 
-To pass several files as input : pass a list of file names (separator is ,) ex:  
+To pass several files as input, separate file names by a comma (","), for example:  
 
     ./dsk  -file A1.fa,A2.fa,A3.fa  -kmer-size 31
 
-Alternatively, it takes a list of files (one file per line) as input: 
+Alternatively, input can be a list of files (one file per line): 
 
     ls -1 *.fastq > list_reads
     ./dsk -file list_reads
