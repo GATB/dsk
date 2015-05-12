@@ -36,59 +36,21 @@ using namespace std;
 template<size_t span>
 static void executeAlgorithm (DSK& dsk, IProperties* props)
 {
+    /** We get a handle on tha bank. */
     IBank* bank = Bank::open(props->getStr("-file"));
-    
     LOCAL (bank);
 
-    size_t kmerSize = props->getInt (STR_KMER_SIZE);
+    /** We create a SortingCountAlgorithm instance. */
+    SortingCountAlgorithm<span> sortingCount (bank, props);
 
-    size_t abundanceMin = props->getInt (STR_KMER_ABUNDANCE_MIN);
-    size_t abundanceMax = props->getInt (STR_KMER_ABUNDANCE_MAX);
-
-    size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
-    size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
-
-
-    StorageMode_e storageMode = DSK::getStorageMode();
-
-    string output = props->get(STR_URI_OUTPUT) ?
-        props->getStr(STR_URI_OUTPUT)   :
-        System::file().getBaseName (bank->getId());
-
-    /************************************************************/
-    /*                       Storage creation                   */
-    /************************************************************/
-    Storage* product = StorageFactory(storageMode).create (output, true, false);
-    LOCAL (product);
-
-    /************************************************************/
-    /*                         Sorting count                    */
-    /************************************************************/
-
-    int use_hashing_instead_of_sorting = 0; // 0 = sorting (default)
-                                            // 1 = hashing (experimental)
-
-    /** We create a DSK instance and execute it. */
-    SortingCountAlgorithm<span> sortingCount (
-        product,
-        bank, //converter.getResult(),
-        kmerSize,
-        make_pair(abundanceMin,abundanceMax),
-        props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
-        props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
-        props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
-        gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT,
-        props->getInt(STR_HISTOGRAM_MAX),
-        use_hashing_instead_of_sorting,
-        minimizerType,
-        minimizerSize
-    );
     sortingCount.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
-    sortingCount.execute();
-    dsk.getInfo()->add (1, sortingCount.getInfo());
 
-    /** We set the output uri. */
-    dsk.getOutput()->add (0, STR_KMER_SOLID,  output);
+    /** We execute the algorithm. */
+    sortingCount.execute();
+
+    /** We collect statistics. */
+    dsk.getInfo()->add (1, sortingCount.getConfig().getProperties());
+    dsk.getInfo()->add (1, sortingCount.getInfo());
 }
 
 /*********************************************************************
