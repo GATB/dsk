@@ -25,6 +25,15 @@
 
 using namespace std;
 
+/********************************************************************************/
+
+struct Parameter
+{
+    Parameter (DSK& dsk, IProperties* props) : dsk(dsk), props(props) {}
+    DSK&         dsk;
+    IProperties* props;
+};
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -33,9 +42,11 @@ using namespace std;
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-static void executeAlgorithm (DSK& dsk, IProperties* props)
+template<size_t span> struct Functor  {  void operator ()  (Parameter parameter)
 {
+    DSK&         dsk   = parameter.dsk;
+    IProperties* props = parameter.props;
+
     /** We get a handle on tha bank. */
     IBank* bank = Bank::open(props->getStr("-file"));
     LOCAL (bank);
@@ -51,7 +62,7 @@ static void executeAlgorithm (DSK& dsk, IProperties* props)
     /** We collect statistics. */
     dsk.getInfo()->add (1, sortingCount.getConfig().getProperties());
     dsk.getInfo()->add (1, sortingCount.getInfo());
-}
+} };
 
 /*********************************************************************
 ** METHOD  :
@@ -83,10 +94,6 @@ void DSK::execute ()
     /** we get the kmer size chosen by the end user. */
     size_t kmerSize = getInput()->getInt (STR_KMER_SIZE);
 
-    /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
-         if (kmerSize < KSIZE_1)  { executeAlgorithm <KSIZE_1>  (*this, getInput());  }
-    else if (kmerSize < KSIZE_2)  { executeAlgorithm <KSIZE_2>  (*this, getInput());  }
-    else if (kmerSize < KSIZE_3)  { executeAlgorithm <KSIZE_3>  (*this, getInput());  }
-    else if (kmerSize < KSIZE_4)  { executeAlgorithm <KSIZE_4>  (*this, getInput());  }
-    else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
+    /** We launch dsk with the correct Integer implementation according to the choosen kmer size. */
+    Integer::apply<Functor,Parameter> (kmerSize, Parameter (*this, getInput()));
 }
