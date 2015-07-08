@@ -38,10 +38,10 @@ In particular, the HDF5 output of DSK holds two sets of data:
 * the couples of (kmer,abundance)
 * the histogram of abundances
     
-You can get content of a dataset (description + data) with:
+You can get content of a dataset (kmers in partition 0, and whole histogram) with:
     
-    h5dump -y -d dsk/solid      output.h5
-    h5dump -y -d dsk/histogram  output.h5
+    h5dump -y -d dsk/solid/0          output.h5
+    h5dump -y -d histogram/histogram  output.h5
 
 To see the results as a list of "[kmer] [count]\n", use the `dsk2ascii` binary with the output file from dsk 
 
@@ -49,7 +49,7 @@ To see the results as a list of "[kmer] [count]\n", use the `dsk2ascii` binary w
     
 To plot kmer coverage distribution,    
     
-    h5dump -y -d dsk/histogram  output.h5  | grep "^\ *[0-9]" | tr -d " " | paste - - | gnuplot -p -e 'plot  "-" with lines'     
+    h5dump -y -d histogram/histogram  output.h5  | grep "^\ *[0-9]" | tr -d " " | paste - - | gnuplot -p -e 'plot  "-" with lines'     
 
 
 ## Larger k-mer sizes
