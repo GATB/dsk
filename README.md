@@ -52,6 +52,15 @@ To plot kmer coverage distribution,
     h5dump -y -d histogram/histogram  output.h5  | grep "^\ *[0-9]" | tr -d " " | paste - - | gnuplot -p -e 'plot  "-" with lines'     
 
 
+## Kmers and their reverse compelments
+
+DSK converts kmers to a canonical representation with respect to reverse-complementation. 
+
+This means that a kmer and its reverse complement are considered to be the same object. For example, with k=3 and assuming the kmer AAA and its reverse complement TTT are both present the input dataset, then DSK will consider that one of them is the canonical kmer, e.g. AAA. If AAA is present 2 times and TTT 3 times, then DSK will return that the count of AAA is 5 and wont return the count of TTT at all.
+
+Note: the canonical kmer is not the lexicographically smaller one! DSK uses a different ordering for faster performance. Specifically, DSK considers tha A<C<T<G and returns the lexicographically smaller kmer using this alphabet order. So, in the example above, AAA is indeed the canonical kmer. For the GTA/TAC pair, the lexicographically smallest is GTA however the canonical kmer is TAC (as DSK considers that T<G).
+
+
 ## Larger k-mer sizes
 
 DSK supports arbitrary large k-mer lengths. 
