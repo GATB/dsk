@@ -24,7 +24,7 @@ If you retrieved the software from a binary distribution:
 
     cd test
     ./simple_test.sh
-    
+
 ## Usage
 
 * type `./dsk` for usage.
@@ -90,6 +90,6 @@ Just compile from the source, to support k-mer lengths up to, say, 160, type thi
 
 ## Homepage, contact
 
-http://minia.genouest.org/dsk/
+https://gatb.inria.fr/software/dsk/
 
-To contact a developer: rayan.chikhi@ens-cachan.org
+To contact a developer: https://gatb.inria.fr/contact/
