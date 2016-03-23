@@ -7,11 +7,12 @@ DSK outputs a set of solid kmers, i.e. kmers which occur more than a minimal amo
 It also outputs the number of times these kmers occur.
 See "Results visualization" section to learn how to use its output.
 
-## Compilation
+## Compiling
 
-If you retrieved a source archive, you can use cmake to compile the tool:
+If you retrieved a source archive, you can use cmake 2.6+ to compile the DSK software:
 
-    mkdir build; cd build; cmake ..; make
+    cd [home_directory_of_DSK]
+    mkdir build ; cd build ; cmake .. ; make
 
 ## Testing
 
@@ -25,9 +26,9 @@ If you retrieved the software from a binary distribution:
     cd test
     ./simple_test.sh
 
-## Usage
+## Using
 
-* type `./dsk` for usage.
+* type `./dsk` for usage instructions.
 
 
 ## Input
