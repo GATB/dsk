@@ -87,6 +87,9 @@ target_link_libraries(${PROJECT_NAME} ${gatb-core-libraries})
 ################################################################################
 add_subdirectory (utils)
 
+################################################################################
+#  PACKAGING
+################################################################################
 # We set the version number
 SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY  "gatb-tool ${PROJECT_NAME}")
 SET (CPACK_PACKAGE_VENDOR               "Genscale team (INRIA)")
@@ -109,7 +112,6 @@ SET (CPACK_SOURCE_IGNORE_FILES
     "^${GATB_CORE_HOME}/\\.git/"     ;
     "^${GATB_CORE_HOME}/\\.project"  ;
     "^${GATB_CORE_HOME}/\\.gitignore";
-    "^${GATB_CORE_HOME}/doc/design"  ;
     "^${GATB_CORE_HOME}/quick-build.sh"
 )
 
@@ -123,30 +125,3 @@ INSTALL (FILES LICENSE README.md scripts/simple_test.sh DESTINATION bin/..)
 set (CPACK_PACKAGE_FILE_NAME  ${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-bin-${CMAKE_SYSTEM_NAME})
 
 include (CPack)
-
-
-
-################################################################################
-#  INSTALLATION
-################################################################################
-
-#INSTALL (FILES     ${CMAKE_CURRENT_SOURCE_DIR}/README.md        DESTINATION ./share/dsk)
-#INSTALL (FILES     ${CMAKE_CURRENT_SOURCE_DIR}/simple_test.sh   DESTINATION ./share/dsk)
-#INSTALL (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test             DESTINATION ./share/dsk)
-
-################################################################################
-#  PACKAGING
-################################################################################
-
-# We chose the kind of archive we want to generate
-#SET (CPACK_GENERATOR            "TGZ")
-#SET (CPACK_SOURCE_GENERATOR     "TGZ")
-
-# We copy the project binary to the 'bin' directory
-#INSTALL (TARGETS ${PROJECT_NAME} DESTINATION bin)
-
-# For the source archive, we exclude some unwanted directories.
-#SET (CPACK_SOURCE_IGNORE_FILES  ${CPACK_SOURCE_IGNORE_FILES} "/build/" ".gitignore$" "quick-build.sh")
-
-# To be done at the end.
-#INCLUDE (Delivery)
