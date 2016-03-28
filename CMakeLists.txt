@@ -74,6 +74,7 @@ file (GLOB_RECURSE  ProjectFiles  ${PROGRAM_SOURCE_DIR}/*)
 add_executable(${PROJECT_NAME} ${ProjectFiles})
 target_link_libraries(${PROJECT_NAME} ${gatb-core-libraries})
 
+
 ################################################################################
 #  DOC
 ################################################################################
