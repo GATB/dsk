@@ -9,7 +9,11 @@ See "Results visualization" section to learn how to use its output.
 
 ## Compiling
 
-If you retrieved a source archive, you can use cmake 2.6+ to compile the DSK software:
+To clone from Github (don't forget the ```--recursive``` flag):
+
+    git clone --recursive https://github.com/GATB/dsk.git
+
+Then compile the DSK software (using cmake >= 2.6):
 
     cd [home_directory_of_DSK]
     mkdir build ; cd build ; cmake .. ; make
