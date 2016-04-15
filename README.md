@@ -1,5 +1,11 @@
-# DSK  short manual
+# DSK
+| **Linux** | **Mac OSX** |
+|-----------|-------------|
+[![Build Status](https://ci.inria.fr/gatb-core/view/DSK/job/tool-dsk-build-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/DSK/job/tool-dsk-build-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/DSK/job/tool-dsk-build-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/DSK/job/tool-dsk-build-macos-10.9.5-gcc-4.2.1/)
 
+[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
+
+# What is DSK? 
 DSK is a k-mer counter for reads or genomes.
 
 It takes as input a set of sequences in FASTA or FASTQ format (see "Input" section).
@@ -7,16 +13,22 @@ DSK outputs a set of solid kmers, i.e. kmers which occur more than a minimal amo
 It also outputs the number of times these kmers occur.
 See "Results visualization" section to learn how to use its output.
 
-## Compiling
+# Getting the latest source code
 
-To clone from Github (don't forget the ```--recursive``` flag):
+## Requirements
 
-    git clone --recursive https://github.com/GATB/dsk.git
+CMake 2.6+; see http://www.cmake.org/cmake/resources/software.html
 
-Then compile the DSK software (using cmake >= 2.6):
+c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and clang version>=4.1 (Mac OSX).
 
-    cd [home_directory_of_DSK]
-    mkdir build ; cd build ; cmake .. ; make
+## Instructions
+
+    # get a local copy of minia source code
+    git clone --recursive https://github.com/GATB/minia.git
+    
+    # compile the code an run a simple test on your computer
+    cd minia
+    sh INSTALL
 
 ## Testing
 
