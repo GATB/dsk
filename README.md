@@ -24,10 +24,10 @@ c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and c
 ## Instructions
 
     # get a local copy of minia source code
-    git clone --recursive https://github.com/GATB/minia.git
+    git clone --recursive https://github.com/GATB/dsk.git
     
     # compile the code an run a simple test on your computer
-    cd minia
+    cd dsk
     sh INSTALL
 
 ## Testing
