@@ -105,6 +105,15 @@ Just compile from the source, to support k-mer lengths up to, say, 160, type thi
     rm -Rf CMake* && cmake -Dk4=160 .. && make
 
 
+## Disk space and speed
+
+As a general rule of thumb, run DSK in a folder with plenty of free space, i.e. several times the size of the input dataset.
+You can also specify the ```-out-tmp``` parameter to a location with free space.
+In the output during execution, the number of passes should be low (below 10). 
+Else this generally means that more disk space would make the execution much faster.
+DSK auto-detects the free disk space and uses a fraction of it. You can specify ```-max-disk``` parameter to fine-tune this.
+
+
 ## Homepage, contact
 
 https://gatb.inria.fr/software/dsk/
