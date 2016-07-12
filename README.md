@@ -102,8 +102,9 @@ For the GTA/TAC pair, the lexicographically smallest is GTA however the canonica
 DSK supports arbitrary large k-mer lengths.
 Just compile from the source, to support k-mer lengths up to, say, 160, type this in the build folder:
 
-    rm -Rf CMake* && cmake -Dk4=160 .. && make
+    rm -Rf CMake* && cmake -DKSIZE_LIST="32 64 96 128 160" .. && make
 
+KSIZE_LIST can contain an arbitrary number of multiples of 32.
 
 ## Disk space and speed
 
