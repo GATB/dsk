@@ -34,7 +34,7 @@ echo "Testing $bindir/dsk"
 ################################################################################
 echo -n "Testing single gz file ..........."
 $bindir/dsk -file $testdir/read50x_ref10K_e001.fasta.gz -kmer-size 27 -out test_dsk27 -max-memory 200 -verbose 0
-$h5bindir/h5dump -y -d histogram/histogram test_dsk27.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_dsk27.histo
+$h5bindir/gatb-h5dump -y -d histogram/histogram test_dsk27.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_dsk27.histo
 
 diff test_dsk27.histo  $testdir/k27.histo > /dev/null
 
@@ -50,7 +50,7 @@ fi
 ################################################################################
 echo -n "Testing multiple gz files ........"
 $bindir/dsk -file $testdir/c1.fasta.gz,$testdir/c2.fasta.gz,$testdir/c3.fasta.gz,$testdir/c4.fasta.gz -kmer-size 27 -out test_dsk27 -max-memory 200 -verbose 0
-$h5bindir/h5dump -y -d histogram/histogram test_dsk27.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_dsk27.histo
+$h5bindir/gatb-h5dump -y -d histogram/histogram test_dsk27.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_dsk27.histo
 
 diff test_dsk27.histo  $testdir/k27.histo > /dev/null
 
@@ -68,7 +68,7 @@ fi
 ################################################################################
 echo -n "Testing long reads ..........."
 $bindir/dsk -file $testdir/longread.fasta -kmer-size 27 -out test_long  -verbose 0 -max-memory 200
-$h5bindir/h5dump -y -d histogram/histogram test_long.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_long.histo
+$h5bindir/gatb-h5dump -y -d histogram/histogram test_long.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_long.histo
 
 diff test_long.histo  $testdir/rlong.histo > /dev/null
 
@@ -120,7 +120,7 @@ fi
 ################################################################################
 echo -n "Testing read with N ........"
 $bindir/dsk -file $testdir/readN.fasta -kmer-size 20 -out test_N  -verbose 0 -max-memory 200
-$h5bindir/h5dump -y -d histogram/histogram test_N.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_N.histo
+$h5bindir/gatb-h5dump -y -d histogram/histogram test_N.h5 | grep "^\ *[0-9]" | tr -d " " | tr -d "," | paste - - > test_N.histo
 
 diff test_N.histo  $testdir/readN.histo > /dev/null
 
