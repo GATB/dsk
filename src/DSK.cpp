@@ -62,6 +62,11 @@ template<size_t span> struct Functor  {  void operator ()  (Parameter parameter)
     /** We collect statistics. */
     dsk.getInfo()->add (1, sortingCount.getConfig().getProperties());
     dsk.getInfo()->add (1, sortingCount.getInfo());
+
+
+    /* save execution info into storage, same thing as Graph.cpp::executealgorithm would do */
+    sortingCount.getStorage()->getGroup(sortingCount.getName()).setProperty("xml", string("\n") + sortingCount.getInfo()->getXML());
+
 } };
 
 /*********************************************************************
