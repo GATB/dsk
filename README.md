@@ -85,7 +85,22 @@ To plot kmer coverage distribution,
 
     h5dump -y -d histogram/histogram  output.h5  | grep "^\ *[0-9]" | tr -d " " | paste - - | gnuplot -p -e 'plot  "-" with lines'     
 
+### Alternative ways to plot kmer coverage distributions
 
+To plot the kmer coverage distribution, you can also use the `-histo` option and a simple R script provided in the `utils` directory
+
+    ./dsk  -file A.fa -histo 1 -out outputfile
+	Rscript utils/plot-histo.R outputfile.histo 
+	# the kmer count profile is plotted in the image file outputfile.histo.png
+	
+With the option `-histo2D`, you can also plot a kmer comparison plot between a genome assembly and a read set to visualize for instance k-mer duplication levels of the given assembly, following a nice idea originally implemented in [KAT (Kmer Analysis Toolkit)](https://github.com/TGAC/KAT) (see examples and how to interpret such plots [in the KAT documentation](http://kat.readthedocs.io/en/latest/walkthrough.html#genome-assembly-analysis-using-k-mer-spectra)). For this purpose, you need to give as input the assembly fasta file and the read files with the option `-file` taking care to give the assembly file as the first file of the list. 
+
+    ./dsk  -file assembly.fa,reads1.fq,reads2.fq -histo2D 1 -out outputname
+	# the kmer count matrix is output in file outputname.histo2D, 
+	# where lines correspond to abundances in the read dataset and columns abundances in the genome assembly (0 to 10)
+	Rscript utils/plot-histo2D.R outputname.histo2D 
+	# the kmer comparison plot is plotted in the image file outputname.histo2D.png
+	
 ## Kmers and their reverse complements
 
 DSK converts all kmers to their canonical representation with respect to reverse-complementation.
