@@ -17,9 +17,9 @@ See "Results visualization" section to learn how to use its output.
 
 ## Requirements
 
-CMake 2.6+; see http://www.cmake.org/cmake/resources/software.html
+CMake 3.1+; see http://www.cmake.org/cmake/resources/software.html
 
-c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and clang version>=4.1 (Mac OSX).
+C++/11 capable compiler (e.g. gcc 4.7+, clang 3.5+, Apple/clang 6.0+).
 
 ## Instructions
 
