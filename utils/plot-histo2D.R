@@ -23,13 +23,22 @@ tab=read.table(hist.file)
 
 
 mat = tab[,-1]
-ymax=max(mat[,2])*1.05
+
+# automatic adjustement of ymax :
+#first compute the kmer profile of the read dataset (sum over all columns, ie. all assembly abundances)
+linetot=apply(mat[-c(1,nrow(mat)),],1,'sum')
+#eliminating the last line of mat because cumul of all abundances > abundance_max (def = 10001)
+# then identifying the first increase :
+beg=which(diff(linetot)>0)[1]
+# then finding the maximum after the first increase (hopefully skipping the highly numerous kmers with low abundance and containing sequencing errors)
+ymax=max(linetot[beg:length(linetot)])*1.05
+
+#ymax=max(mat[,2])*1.05
 
 if (length(args)>1) {
   xmax=as.numeric(args[2])
 }else{
   #auto computed as the largest abundance with kmer count > 0.5*ymax/100  (0.5%)
-  linetot=apply(mat,1,'sum')
   xmax=max(which(linetot>=0.5*ymax/100))
   #print(xmax)
 }
