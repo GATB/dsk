@@ -70,7 +70,7 @@ public:
         for (itKmers->first(); !itKmers->isDone(); itKmers->next())
         {
             const Count& count = itKmers->item();
-            output << model.toString(count.value) << " " << count.abundance << endl;
+            output << model.toString(count.value) << " " << count.abundance << "\n";
         }
 
         output.close();
