@@ -101,7 +101,7 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
     make package_source
 
     # make both tar.gz available as Jenkins build artifacts    
-    cp ${ARCHIVE_NAME}-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz ${WORKSPACE}/
-    cp ${ARCHIVE_NAME}-${BRANCH_TO_BUILD}-Source.tar.gz ${WORKSPACE}/
+    cp ${TOOL_NAME}-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz ${WORKSPACE}/
+    cp ${TOOL_NAME}-${BRANCH_TO_BUILD}-Source.tar.gz ${WORKSPACE}/
 fi
 
